@@ -4,6 +4,10 @@ class NotesApp {
         this.isAuthenticated = false;
         this.autosaveTimer = null;
         this.notes = [];
+        this.noteLoadedAt = null;
+        this.pollTimer = null;
+        this.isIdle = false;
+        this.lastActivity = Date.now();
         
         this.init();
     }
@@ -69,11 +73,24 @@ class NotesApp {
         // Editor
         const editor = document.getElementById('editor');
         editor.addEventListener('input', () => {
+            this.trackActivity();
+            
+            // Auto-create note if authenticated user starts typing without a note selected
+            if (!this.currentNote && this.isAuthenticated && editor.value.trim()) {
+                this.autoCreateNote(editor.value);
+                return;
+            }
+            
             this.handleEditorChange();
+        });
+        
+        editor.addEventListener('click', () => {
+            this.trackActivity();
         });
         
         // Note title
         document.getElementById('noteTitle').addEventListener('input', () => {
+            this.trackActivity();
             this.handleTitleChange();
         });
         
@@ -140,6 +157,10 @@ class NotesApp {
     
     selectNote(note) {
         this.currentNote = note;
+        this.noteLoadedAt = new Date(note.modified);
+        
+        // Start polling for updates if authenticated
+        this.startPolling();
         
         // Update UI
         document.getElementById('editor').value = note.content;
@@ -236,6 +257,11 @@ class NotesApp {
     async saveNote() {
         if (!this.currentNote) return;
         
+        // Check for conflicts before saving
+        if (await this.checkForConflicts()) {
+            return; // Conflict detected, don't save
+        }
+        
         const noteData = {
             content: document.getElementById('editor').value
         };
@@ -255,11 +281,13 @@ class NotesApp {
             
             const updatedNote = await response.json();
             this.currentNote = updatedNote;
+            this.noteLoadedAt = new Date(updatedNote.modified);
             
-            // Update note in list
+            // Update note in list and move to top (most recent)
             const index = this.notes.findIndex(n => n.id === updatedNote.id);
             if (index !== -1) {
-                this.notes[index] = updatedNote;
+                this.notes.splice(index, 1);
+                this.notes.unshift(updatedNote);
                 this.renderNotesList();
             }
         } catch (error) {
@@ -328,10 +356,119 @@ class NotesApp {
         try {
             await fetch('/api/logout', { method: 'POST' });
             this.isAuthenticated = false;
+            this.stopPolling();
             this.updateUI();
             this.loadNotes();
         } catch (error) {
             console.error('Logout failed:', error);
+        }
+    }
+    
+    async checkForConflicts() {
+        if (!this.currentNote || !this.noteLoadedAt) return false;
+        
+        try {
+            const response = await fetch(`/api/notes/${this.currentNote.id}`);
+            const latestNote = await response.json();
+            const latestModified = new Date(latestNote.modified);
+            
+            if (latestModified > this.noteLoadedAt) {
+                return this.handleConflict(latestNote);
+            }
+            return false;
+        } catch (error) {
+            console.error('Failed to check for conflicts:', error);
+            return false;
+        }
+    }
+    
+    handleConflict(latestNote) {
+        const currentContent = document.getElementById('editor').value;
+        
+        if (latestNote.content === currentContent) {
+            // No real conflict, just update metadata
+            this.currentNote = latestNote;
+            this.noteLoadedAt = new Date(latestNote.modified);
+            return false;
+        }
+        
+        const userChoice = confirm(
+            'This note has been modified elsewhere. Your changes:\n\n' +
+            currentContent.slice(0, 200) + (currentContent.length > 200 ? '...' : '') + 
+            '\n\nLatest version:\n\n' +
+            latestNote.content.slice(0, 200) + (latestNote.content.length > 200 ? '...' : '') +
+            '\n\nClick OK to keep your changes or Cancel to load the latest version.'
+        );
+        
+        if (!userChoice) {
+            // User chose to load latest version
+            this.selectNote(latestNote);
+        }
+        
+        return userChoice; // true = conflict, don't save; false = resolved, can save
+    }
+    
+    startPolling() {
+        this.stopPolling();
+        
+        if (!this.currentNote) return;
+        
+        this.pollTimer = setInterval(() => {
+            this.trackActivity();
+            
+            // Check if idle for more than 1 hour (3600000ms)
+            if (Date.now() - this.lastActivity > 3600000) {
+                if (!this.isIdle) {
+                    this.setIdleState(true);
+                }
+                return; // Don't poll when idle
+            }
+            
+            this.checkForUpdates();
+        }, 5000); // Poll every 5 seconds
+    }
+    
+    stopPolling() {
+        if (this.pollTimer) {
+            clearInterval(this.pollTimer);
+            this.pollTimer = null;
+        }
+    }
+    
+    async checkForUpdates() {
+        if (!this.currentNote || !this.noteLoadedAt) return;
+        
+        try {
+            const response = await fetch(`/api/notes/${this.currentNote.id}`);
+            const latestNote = await response.json();
+            const latestModified = new Date(latestNote.modified);
+            
+            if (latestModified > this.noteLoadedAt) {
+                this.handleConflict(latestNote);
+            }
+        } catch (error) {
+            console.error('Failed to check for updates:', error);
+        }
+    }
+    
+    trackActivity() {
+        this.lastActivity = Date.now();
+        if (this.isIdle) {
+            this.setIdleState(false);
+        }
+    }
+    
+    setIdleState(idle) {
+        this.isIdle = idle;
+        const editor = document.getElementById('editor');
+        
+        if (idle) {
+            editor.style.opacity = '0.5';
+            editor.placeholder = 'Click to wake up and resume editing...';
+            editor.blur();
+        } else {
+            editor.style.opacity = '1';
+            editor.placeholder = '';
         }
     }
 }
