@@ -115,9 +115,8 @@ if (isCrawler()) {
         echo "Error loading note";
     }
 } else {
-    // Redirect browsers to the main app with hash URL
-    $redirectUrl = '/#' . urlencode($noteId);
-    header('Location: ' . $redirectUrl, true, 302);
+    // Serve the main app for browsers
+    include 'index.html';
     exit;
 }
 ?>

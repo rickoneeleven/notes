@@ -801,25 +801,29 @@ class NotesApp {
     }
     
     updateUrl(noteId) {
-        const url = noteId ? `#${noteId}` : '';
-        if (window.location.hash !== url) {
+        const url = noteId ? `/note/${noteId}` : '/';
+        if (window.location.pathname !== url) {
             window.history.pushState({ noteId }, '', url);
         }
     }
     
     checkUrlForNote() {
+        // Check for both hash format (legacy) and path format (new)
         const hash = window.location.hash.slice(1); // Remove #
-        if (hash && hash !== (this.currentNote?.id || '')) {
+        const pathMatch = window.location.pathname.match(/^\/note\/([^\/]+)/);
+        const noteId = pathMatch ? pathMatch[1] : hash;
+        
+        if (noteId && noteId !== (this.currentNote?.id || '')) {
             // Try to find and load the note from URL
-            const note = this.notes.find(n => n.id === hash);
+            const note = this.notes.find(n => n.id === noteId);
             if (note) {
                 this.selectNote(note, false); // Don't update URL again
             } else {
                 // Note not in current list, try to load it directly
-                this.loadNoteFromUrl(hash);
+                this.loadNoteFromUrl(noteId);
             }
-        } else if (!hash && this.currentNote) {
-            // Clear current note if no hash
+        } else if (!noteId && this.currentNote) {
+            // Clear current note if no note ID in URL
             this.clearCurrentNote();
         }
     }
