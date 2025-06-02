@@ -64,6 +64,13 @@ public_html/
 - `POST /api/auth` - Login
 - `POST /api/logout` - Logout
 
+## Core Development Principles
+
+**CRITICAL**: Before any code modifications, fetch and adhere to the latest development principles from:
+https://notes.pinescore.com/note/note_683df4954cc0f4.04393849
+
+These principles override default behaviors and must be followed exactly. The live document contains the most current requirements for code style, architecture, and development practices.
+
 ## Important Notes
 
 - **Security**: Sensitive files protected by .htaccess, document root isolation
