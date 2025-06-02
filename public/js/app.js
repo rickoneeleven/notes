@@ -8,6 +8,7 @@ class NotesApp {
         this.pollTimer = null;
         this.isIdle = false;
         this.lastActivity = Date.now();
+        this.typingTimer = null;
         
         this.init();
     }
@@ -96,6 +97,7 @@ class NotesApp {
         const editor = document.getElementById('editor');
         editor.addEventListener('input', () => {
             this.trackActivity();
+            this.handleTyping();
             
             // Auto-create note if authenticated user starts typing without a note selected
             if (!this.currentNote && this.isAuthenticated && editor.value.trim()) {
@@ -113,6 +115,7 @@ class NotesApp {
         // Note title
         document.getElementById('noteTitle').addEventListener('input', () => {
             this.trackActivity();
+            this.handleTyping();
             this.handleTitleChange();
         });
         
@@ -158,6 +161,11 @@ class NotesApp {
     
     renderNotesList() {
         const notesList = document.getElementById('notesList');
+        
+        // Remember which note is currently showing typing indicator
+        const typingNoteId = this.currentNote?.id;
+        const wasTyping = typingNoteId && document.querySelector(`[data-note-id="${typingNoteId}"]`)?.classList.contains('typing');
+        
         notesList.innerHTML = '';
         
         this.notes.forEach(note => {
@@ -178,6 +186,14 @@ class NotesApp {
                 this.loadNote(note.id);
             });
             
+            // Restore active and typing states
+            if (this.currentNote && note.id === this.currentNote.id) {
+                li.classList.add('active');
+                if (wasTyping) {
+                    li.classList.add('typing');
+                }
+            }
+            
             notesList.appendChild(li);
         });
     }
@@ -193,6 +209,12 @@ class NotesApp {
     }
     
     selectNote(note) {
+        // Clear typing indicator from previous note
+        if (this.currentNote) {
+            this.setTypingIndicator(false);
+            clearTimeout(this.typingTimer);
+        }
+        
         this.currentNote = note;
         this.noteLoadedAt = new Date(note.modified);
         
@@ -526,6 +548,34 @@ class NotesApp {
         } else {
             editor.style.opacity = '1';
             editor.placeholder = '';
+        }
+    }
+    
+    handleTyping() {
+        if (!this.currentNote) return;
+        
+        // Add typing indicator
+        this.setTypingIndicator(true);
+        
+        // Clear existing timer
+        clearTimeout(this.typingTimer);
+        
+        // Set timer to remove typing indicator after 5 seconds
+        this.typingTimer = setTimeout(() => {
+            this.setTypingIndicator(false);
+        }, 5000);
+    }
+    
+    setTypingIndicator(isTyping) {
+        if (!this.currentNote) return;
+        
+        const noteElement = document.querySelector(`[data-note-id="${this.currentNote.id}"]`);
+        if (noteElement) {
+            if (isTyping) {
+                noteElement.classList.add('typing');
+            } else {
+                noteElement.classList.remove('typing');
+            }
         }
     }
     
