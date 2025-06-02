@@ -483,6 +483,11 @@ class NotesApp {
             this.saveCurrentNote();
         });
         
+        // Direct link
+        document.getElementById('directLinkBtn').addEventListener('click', () => {
+            this.copyDirectLink();
+        });
+        
         // Delete note
         document.getElementById('deleteNoteBtn').addEventListener('click', () => {
             this.deleteCurrentNote();
@@ -510,7 +515,7 @@ class NotesApp {
             const response = await fetch(`/api/notes/${noteId}`);
             if (response.ok) {
                 const note = await response.json();
-                this.selectNote(note); // Update URL when loading note
+                this.selectNote(note);
             } else {
                 console.error('Note not found or not accessible');
             }
@@ -524,21 +529,17 @@ class NotesApp {
             const response = await fetch(`/api/notes/${noteId}`);
             if (response.ok) {
                 const note = await response.json();
-                this.selectNote(note, false); // Don't update URL since we're loading from URL
+                this.selectNote(note);
             } else {
-                // Note not found or not accessible, clear URL
-                this.updateUrl(null);
                 this.clearCurrentNote();
             }
         } catch (error) {
             console.error('Failed to load note:', error);
-            // Clear URL on error
-            this.updateUrl(null);
             this.clearCurrentNote();
         }
     }
     
-    selectNote(note, updateUrl = true) {
+    selectNote(note) {
         if (this.currentNote) {
             this.ui.setTypingIndicator(this.currentNote.id, false);
             clearTimeout(this.typingTimer);
@@ -548,10 +549,6 @@ class NotesApp {
         
         this.currentNote = note;
         this.noteLoadedAt = new Date(note.modified);
-        
-        if (updateUrl) {
-            this.updateUrl(note.id);
-        }
         
         this.pollingManager.startNotePolling();
         
@@ -622,6 +619,53 @@ class NotesApp {
         await this.noteManager.saveNote(noteData);
     }
     
+    copyDirectLink() {
+        if (!this.currentNote) return;
+        
+        const directUrl = `${window.location.origin}/note/${this.currentNote.id}`;
+        
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(directUrl).then(() => {
+                // Visual feedback
+                const btn = document.getElementById('directLinkBtn');
+                const originalText = btn.textContent;
+                btn.textContent = '✓';
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                }, 1000);
+            }).catch(() => {
+                this.fallbackCopyToClipboard(directUrl);
+            });
+        } else {
+            this.fallbackCopyToClipboard(directUrl);
+        }
+    }
+    
+    fallbackCopyToClipboard(text) {
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        
+        try {
+            document.execCommand('copy');
+            const btn = document.getElementById('directLinkBtn');
+            const originalText = btn.textContent;
+            btn.textContent = '✓';
+            setTimeout(() => {
+                btn.textContent = originalText;
+            }, 1000);
+        } catch (err) {
+            alert(`Copy failed. Direct link: ${text}`);
+        } finally {
+            document.body.removeChild(textArea);
+        }
+    }
+    
     async deleteCurrentNote() {
         if (!this.currentNote || !this.isAuthenticated) return;
         
@@ -630,7 +674,6 @@ class NotesApp {
         const success = await this.noteManager.deleteNote(this.currentNote.id);
         if (success) {
             this.currentNote = null;
-            this.updateUrl(null);
             document.getElementById('editor').value = '';
             document.getElementById('noteTitle').value = '';
             document.getElementById('editorHeader').style.display = 'none';
@@ -843,43 +886,15 @@ class NotesApp {
         }
     }
     
-    updateUrl(noteId) {
-        const url = noteId ? `/note/${noteId}` : '/';
-        if (window.location.pathname !== url) {
-            window.history.pushState({ noteId }, '', url);
-        }
-    }
-    
-    checkUrlForNote() {
-        // Check for both hash format (legacy) and path format (new)
-        const hash = window.location.hash.slice(1); // Remove #
-        const pathMatch = window.location.pathname.match(/^\/note\/([^\/]+)/);
-        const noteId = pathMatch ? pathMatch[1] : hash;
-        
-        if (noteId && noteId !== (this.currentNote?.id || '')) {
-            // Try to find and load the note from URL
-            const note = this.notes.find(n => n.id === noteId);
-            if (note) {
-                this.selectNote(note, false); // Don't update URL again
-            } else {
-                // Note not in current list, try to load it directly
-                this.loadNoteFromUrl(noteId);
-            }
-        } else if (!noteId && this.currentNote) {
-            // Clear current note if no note ID in URL
-            this.clearCurrentNote();
-        }
-    }
-    
     clearCurrentNote() {
         // Clear typing indicator from current note
         if (this.currentNote) {
-            this.setTypingIndicator(false);
+            this.ui.setTypingIndicator(this.currentNote.id, false);
             clearTimeout(this.typingTimer);
         }
         
         this.currentNote = null;
-        this.stopPolling();
+        this.pollingManager.stopAllPolling();
         
         // Clear editor
         document.getElementById('editor').value = '';

@@ -201,6 +201,20 @@ h1 {
     cursor: pointer;
 }
 
+.direct-link-btn {
+    background: #0e639c;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 12px;
+}
+
+.direct-link-btn:hover {
+    background: #1177bb;
+}
+
 .delete-btn {
     background: #f14c4c;
     color: white;
