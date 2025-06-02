@@ -27,12 +27,14 @@ class NotesApp {
     updateUI() {
         const loginBtn = document.getElementById('loginBtn');
         const newNoteBtn = document.getElementById('newNoteBtn');
+        const deletedNotesBtn = document.getElementById('deletedNotesBtn');
         const editorHeader = document.getElementById('editorHeader');
         const editor = document.getElementById('editor');
         
         if (this.isAuthenticated) {
             loginBtn.textContent = 'Logout';
             newNoteBtn.style.display = 'block';
+            deletedNotesBtn.style.display = 'block';
             if (this.currentNote) {
                 editorHeader.style.display = 'flex';
             } else {
@@ -44,6 +46,7 @@ class NotesApp {
         } else {
             loginBtn.textContent = 'Login';
             newNoteBtn.style.display = 'none';
+            deletedNotesBtn.style.display = 'none';
             editorHeader.style.display = 'none';
             
             // Unauthenticated users can only type if a note is selected and it's public_editable
@@ -125,6 +128,21 @@ class NotesApp {
         // Delete note
         document.getElementById('deleteNoteBtn').addEventListener('click', () => {
             this.deleteCurrentNote();
+        });
+        
+        // Deleted notes
+        document.getElementById('deletedNotesBtn').addEventListener('click', () => {
+            this.showDeletedNotes();
+        });
+        
+        document.getElementById('closeDeletedModal').addEventListener('click', () => {
+            this.hideDeletedNotes();
+        });
+        
+        document.getElementById('deletedNotesModal').addEventListener('click', (e) => {
+            if (e.target.id === 'deletedNotesModal') {
+                this.hideDeletedNotes();
+            }
         });
     }
     
@@ -508,6 +526,87 @@ class NotesApp {
         } else {
             editor.style.opacity = '1';
             editor.placeholder = '';
+        }
+    }
+    
+    async showDeletedNotes() {
+        try {
+            const response = await fetch('/api/deleted-notes');
+            const deletedNotes = await response.json();
+            this.renderDeletedNotes(deletedNotes);
+            
+            const modal = document.getElementById('deletedNotesModal');
+            modal.style.display = 'flex';
+            
+            // Add swipe-up animation
+            setTimeout(() => {
+                modal.classList.add('show');
+            }, 10);
+        } catch (error) {
+            console.error('Failed to load deleted notes:', error);
+        }
+    }
+    
+    hideDeletedNotes() {
+        const modal = document.getElementById('deletedNotesModal');
+        modal.classList.remove('show');
+        
+        setTimeout(() => {
+            modal.style.display = 'none';
+        }, 300);
+    }
+    
+    renderDeletedNotes(deletedNotes) {
+        const list = document.getElementById('deletedNotesList');
+        list.innerHTML = '';
+        
+        if (deletedNotes.length === 0) {
+            list.innerHTML = '<div class="no-deleted-notes">No deleted notes</div>';
+            return;
+        }
+        
+        deletedNotes.forEach(note => {
+            const item = document.createElement('div');
+            item.className = 'deleted-note-item';
+            
+            const daysText = note.days_deleted === 0 ? 'Today' : 
+                            note.days_deleted === 1 ? '1 day ago' : 
+                            `${note.days_deleted} days ago`;
+            
+            item.innerHTML = `
+                <div class="deleted-note-content">
+                    <div class="deleted-note-title">${note.title || 'Untitled'}</div>
+                    <div class="deleted-note-meta">${daysText}</div>
+                    <div class="deleted-note-preview">${(note.content || '').substring(0, 100)}${note.content && note.content.length > 100 ? '...' : ''}</div>
+                </div>
+                <button class="restore-btn" data-note-id="${note.id}" title="Restore note">↶</button>
+            `;
+            
+            // Add restore functionality
+            const restoreBtn = item.querySelector('.restore-btn');
+            restoreBtn.addEventListener('click', () => {
+                this.restoreNote(note.id);
+            });
+            
+            list.appendChild(item);
+        });
+    }
+    
+    async restoreNote(noteId) {
+        try {
+            const response = await fetch(`/api/deleted-notes/${noteId}/restore`, {
+                method: 'POST'
+            });
+            
+            if (response.ok) {
+                // Refresh both deleted notes and main notes list
+                this.loadNotes();
+                this.showDeletedNotes(); // Refresh the deleted notes modal
+            } else {
+                console.error('Failed to restore note');
+            }
+        } catch (error) {
+            console.error('Failed to restore note:', error);
         }
     }
 }

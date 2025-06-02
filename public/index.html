@@ -20,6 +20,9 @@
             <ul id="notesList" class="notes-list">
                 <!-- Notes will be loaded here -->
             </ul>
+            <div class="sidebar-footer">
+                <button id="deletedNotesBtn" class="deleted-notes-btn" style="display: none;">🗑️ Deleted Notes</button>
+            </div>
         </aside>
         
         <main class="editor-container">
@@ -48,6 +51,21 @@
                 <input type="password" id="password" placeholder="Password" required>
                 <button type="submit">Login</button>
             </form>
+        </div>
+    </div>
+    
+    <div id="deletedNotesModal" class="deleted-modal" style="display: none;">
+        <div class="deleted-modal-content">
+            <div class="deleted-header">
+                <h3>Deleted Notes</h3>
+                <button id="closeDeletedModal" class="close-btn">×</button>
+            </div>
+            <div class="deleted-info">
+                <p>Notes are automatically removed after 30 days</p>
+            </div>
+            <div id="deletedNotesList" class="deleted-notes-list">
+                <!-- Deleted notes will be loaded here -->
+            </div>
         </div>
     </div>
     

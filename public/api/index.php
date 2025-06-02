@@ -123,6 +123,46 @@ function moveToDeleted($noteId) {
     return false;
 }
 
+function getDeletedNotes() {
+    $deletedNotes = [];
+    $files = glob(DELETED_DIR . '*.json');
+    
+    foreach ($files as $file) {
+        $note = json_decode(file_get_contents($file), true);
+        if ($note) {
+            $deletedAt = new DateTime($note['deleted_at']);
+            $now = new DateTime();
+            $interval = $now->diff($deletedAt);
+            $note['days_deleted'] = $interval->days;
+            $deletedNotes[] = $note;
+        }
+    }
+    
+    usort($deletedNotes, function($a, $b) {
+        return strtotime($b['deleted_at']) - strtotime($a['deleted_at']);
+    });
+    
+    return $deletedNotes;
+}
+
+function restoreNote($noteId) {
+    $deletedFile = DELETED_DIR . $noteId . '.json';
+    $targetFile = NOTES_DIR . $noteId . '.json';
+    
+    if (file_exists($deletedFile)) {
+        $note = json_decode(file_get_contents($deletedFile), true);
+        unset($note['deleted_at']);
+        $note['modified'] = date('c');
+        
+        file_put_contents($targetFile, json_encode($note, JSON_PRETTY_PRINT));
+        unlink($deletedFile);
+        
+        return $note;
+    }
+    
+    return false;
+}
+
 switch ($route) {
     case 'auth':
         if ($method === 'POST') {
@@ -165,6 +205,16 @@ switch ($route) {
             ];
             $note = saveNote($note);
             echo json_encode($note);
+        } else {
+            http_response_code(403);
+            echo json_encode(['error' => 'Forbidden']);
+        }
+        break;
+        
+    case 'deleted-notes':
+        if ($method === 'GET' && isAuthenticated()) {
+            $deletedNotes = getDeletedNotes();
+            echo json_encode($deletedNotes);
         } else {
             http_response_code(403);
             echo json_encode(['error' => 'Forbidden']);
@@ -216,6 +266,21 @@ switch ($route) {
                 } else {
                     http_response_code(404);
                     echo json_encode(['error' => 'Note not found']);
+                }
+            } else {
+                http_response_code(403);
+                echo json_encode(['error' => 'Forbidden']);
+            }
+        } elseif (preg_match('/^deleted-notes\/(.+)\/restore$/', $route, $matches)) {
+            $noteId = $matches[1];
+            
+            if ($method === 'POST' && isAuthenticated()) {
+                $restoredNote = restoreNote($noteId);
+                if ($restoredNote) {
+                    echo json_encode($restoredNote);
+                } else {
+                    http_response_code(404);
+                    echo json_encode(['error' => 'Deleted note not found']);
                 }
             } else {
                 http_response_code(403);
