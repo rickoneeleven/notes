@@ -233,11 +233,6 @@ class NotesApp {
         
         // Update all UI elements including editor state
         this.updateUI();
-        
-        // Update active state in sidebar
-        document.querySelectorAll('.notes-list li').forEach(li => {
-            li.classList.toggle('active', li.dataset.noteId === note.id);
-        });
     }
     
     async createNote() {

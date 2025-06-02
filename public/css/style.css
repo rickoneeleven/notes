@@ -116,8 +116,8 @@ h1 {
 }
 
 .notes-list li.typing {
-    background: #2d7d32;
-    box-shadow: 0 0 8px rgba(76, 175, 80, 0.3);
+    background: #0b5585;
+    box-shadow: 0 0 6px rgba(11, 85, 133, 0.2);
 }
 
 .notes-list .note-meta {
