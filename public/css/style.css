@@ -1,0 +1,246 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Consolas', 'Courier New', monospace;
+    background: #1e1e1e;
+    color: #d4d4d4;
+    height: 100vh;
+    overflow: hidden;
+}
+
+header {
+    background: #2d2d30;
+    padding: 10px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #3e3e42;
+}
+
+h1 {
+    font-size: 16px;
+    font-weight: normal;
+}
+
+.login-btn {
+    background: #0e639c;
+    color: white;
+    border: none;
+    padding: 5px 15px;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.login-btn:hover {
+    background: #1177bb;
+}
+
+.container {
+    display: flex;
+    height: calc(100vh - 50px);
+}
+
+.sidebar {
+    width: 250px;
+    background: #252526;
+    border-right: 1px solid #3e3e42;
+    overflow-y: auto;
+}
+
+.sidebar-header {
+    padding: 10px;
+    border-bottom: 1px solid #3e3e42;
+}
+
+.new-note-btn {
+    width: 100%;
+    padding: 8px;
+    background: #0e639c;
+    color: white;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.new-note-btn:hover {
+    background: #1177bb;
+}
+
+.notes-list {
+    list-style: none;
+}
+
+.notes-list li {
+    padding: 10px 15px;
+    cursor: pointer;
+    border-bottom: 1px solid #3e3e42;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.notes-list li:hover {
+    background: #2a2d2e;
+}
+
+.notes-list li.active {
+    background: #094771;
+}
+
+.notes-list .note-meta {
+    font-size: 11px;
+    color: #858585;
+    margin-top: 2px;
+}
+
+.editor-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.editor-header {
+    padding: 10px 20px;
+    background: #2d2d30;
+    border-bottom: 1px solid #3e3e42;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.note-title {
+    background: transparent;
+    border: 1px solid transparent;
+    color: #d4d4d4;
+    font-size: 14px;
+    padding: 5px;
+    font-family: inherit;
+    flex: 1;
+    margin-right: 20px;
+}
+
+.note-title:focus {
+    outline: none;
+    border-color: #0e639c;
+}
+
+.note-controls {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+
+.toggle {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+    font-size: 13px;
+}
+
+.toggle input {
+    cursor: pointer;
+}
+
+.delete-btn {
+    background: #f14c4c;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 12px;
+}
+
+.delete-btn:hover {
+    background: #cd3636;
+}
+
+.editor {
+    flex: 1;
+    background: #1e1e1e;
+    color: #d4d4d4;
+    border: none;
+    padding: 20px;
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 14px;
+    line-height: 1.5;
+    resize: none;
+}
+
+.editor:focus {
+    outline: none;
+}
+
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-content {
+    background: #2d2d30;
+    padding: 30px;
+    border-radius: 4px;
+    width: 300px;
+}
+
+.modal-content h2 {
+    margin-bottom: 20px;
+    font-size: 18px;
+}
+
+.modal-content input {
+    width: 100%;
+    padding: 10px;
+    background: #1e1e1e;
+    border: 1px solid #3e3e42;
+    color: #d4d4d4;
+    margin-bottom: 15px;
+    font-family: inherit;
+}
+
+.modal-content input:focus {
+    outline: none;
+    border-color: #0e639c;
+}
+
+.modal-content button {
+    width: 100%;
+    padding: 10px;
+    background: #0e639c;
+    color: white;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.modal-content button:hover {
+    background: #1177bb;
+}
+
+::-webkit-scrollbar {
+    width: 14px;
+}
+
+::-webkit-scrollbar-track {
+    background: #1e1e1e;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #424242;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #4e4e4e;
+}

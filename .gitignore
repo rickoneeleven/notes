@@ -1,0 +1,27 @@
+# Configuration files with sensitive data
+config.json
+
+# Notes storage directory
+notes/
+
+# Log files
+logs/
+
+# Temporary files
+*.tmp
+*.log
+
+# PHP session files
+sessions/
+
+# Let's Encrypt files
+public/.well-known/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Editor files
+*.swp
+*.swo
+*~

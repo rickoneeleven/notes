@@ -1,0 +1,11 @@
+# Protect sensitive files
+<FilesMatch "^(config\.json|.*\.md)$">
+    Order Allow,Deny
+    Deny from all
+</FilesMatch>
+
+# Protect notes directory
+<Directory "notes">
+    Order Allow,Deny
+    Deny from all
+</Directory>

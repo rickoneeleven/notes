@@ -1,0 +1,6 @@
+{
+    "app_name": "Notes",
+    "password_hash": "$2y$10$YourPasswordHashHere",
+    "session_lifetime_days": 365,
+    "autosave_delay_ms": 1000
+}
