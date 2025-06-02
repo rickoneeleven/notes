@@ -73,3 +73,31 @@ public_html/
 - **File Permissions**: Ensure notes/ directory is writable by web server
 - **Production Environment**: Always test changes carefully
 - **JSON Storage**: Individual files prevent lock contention, easy backup/restore
+
+## Core Development Principles (Fetched)
+
+### Code Quality
+- **Simplicity and Clarity**: Prioritize simple, clear code over complex solutions
+- **Self-Documenting Code**: Use descriptive naming conventions that make code purpose obvious
+- **Minimal Comments**: Code clarity should eliminate need for comments
+- **Component Breakdown**: Break complex logic into understandable, focused components
+
+### Architecture Guidelines
+- **High Cohesion**: Components should be highly cohesive with single, clear purpose
+- **Loose Coupling**: Minimize dependencies between modules
+- **Constructor Injection**: Use constructor injection for all dependencies
+- **No Complex Service Creation**: Never create complex services within consumer components
+
+### Structural Rules
+- **400 Line Limit**: Maximum file length is 400 lines
+- **File Breakdown**: Files exceeding 400 lines must be broken down
+- **User Permission**: Require permission before appending to large files
+- **DRY Principle**: Extract and reuse common logic patterns
+
+### Coding Practices
+- **Clear Naming**: Use logical, descriptive variable and function names
+- **Focused Responsibility**: Each component has distinct, focused responsibility
+- **Refactor Over Comment**: Refactor unclear code instead of adding explanatory comments
+- **Remove Redundancy**: Remove redundant comments during refactoring
+
+**Overarching Principle**: "Simplicity, Clarity & Conciseness" in all development
