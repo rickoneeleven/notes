@@ -28,17 +28,36 @@ class NotesApp {
         const loginBtn = document.getElementById('loginBtn');
         const newNoteBtn = document.getElementById('newNoteBtn');
         const editorHeader = document.getElementById('editorHeader');
+        const editor = document.getElementById('editor');
         
         if (this.isAuthenticated) {
             loginBtn.textContent = 'Logout';
             newNoteBtn.style.display = 'block';
             if (this.currentNote) {
                 editorHeader.style.display = 'flex';
+            } else {
+                editorHeader.style.display = 'none';
             }
+            // Authenticated users can always type in editor
+            editor.readOnly = false;
+            editor.placeholder = this.currentNote ? '' : 'Select a note or start typing to create a new one...';
         } else {
             loginBtn.textContent = 'Login';
             newNoteBtn.style.display = 'none';
             editorHeader.style.display = 'none';
+            
+            // Unauthenticated users can only type if a note is selected and it's public_editable
+            if (this.currentNote && this.currentNote.visibility === 'public' && this.currentNote.public_editable) {
+                editor.readOnly = false;
+                editor.placeholder = '';
+            } else {
+                editor.readOnly = true;
+                editor.placeholder = this.currentNote ? 'This note is read-only' : 'Select a note from the left to read it';
+                // Clear editor if user can't edit and no note selected
+                if (!this.currentNote) {
+                    editor.value = '';
+                }
+            }
         }
     }
     
@@ -172,16 +191,8 @@ class NotesApp {
         const editableWrapper = document.getElementById('editableToggleWrapper');
         editableWrapper.style.display = note.visibility === 'public' ? 'flex' : 'none';
         
-        // Update editor state
-        const editor = document.getElementById('editor');
-        const canEdit = this.isAuthenticated || 
-                       (note.visibility === 'public' && note.public_editable);
-        editor.readOnly = !canEdit;
-        
-        // Show header for authenticated users
-        if (this.isAuthenticated) {
-            document.getElementById('editorHeader').style.display = 'flex';
-        }
+        // Update all UI elements including editor state
+        this.updateUI();
         
         // Update active state in sidebar
         document.querySelectorAll('.notes-list li').forEach(li => {
@@ -214,6 +225,34 @@ class NotesApp {
             this.selectNote(note);
         } catch (error) {
             console.error('Failed to create note:', error);
+        }
+    }
+    
+    async autoCreateNote(initialContent) {
+        const existingNewNotes = this.notes.filter(n => n.title.startsWith('new'));
+        let title = 'new';
+        if (existingNewNotes.length > 0) {
+            title = `new(${existingNewNotes.length})`;
+        }
+        
+        try {
+            const response = await fetch('/api/notes', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    title: title,
+                    content: initialContent,
+                    visibility: 'private',
+                    public_editable: false
+                })
+            });
+            
+            const note = await response.json();
+            this.notes.unshift(note);
+            this.renderNotesList();
+            this.selectNote(note);
+        } catch (error) {
+            console.error('Failed to auto-create note:', error);
         }
     }
     
