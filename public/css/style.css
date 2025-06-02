@@ -124,6 +124,32 @@ h1 {
     font-size: 11px;
     color: #858585;
     margin-top: 2px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.note-datetime {
+    flex: 1;
+}
+
+.note-icons {
+    display: flex;
+    gap: 4px;
+    margin-left: 8px;
+}
+
+.note-icon {
+    font-size: 10px;
+    opacity: 0.7;
+}
+
+.note-icon.public-icon {
+    color: #4CAF50;
+}
+
+.note-icon.editable-icon {
+    color: #FF9800;
 }
 
 .editor-container {

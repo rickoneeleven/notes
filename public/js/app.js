@@ -181,7 +181,32 @@ class NotesApp {
             const meta = document.createElement('div');
             meta.className = 'note-meta';
             const date = new Date(note.modified);
-            meta.textContent = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+            
+            const dateTime = document.createElement('span');
+            dateTime.className = 'note-datetime';
+            dateTime.textContent = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+            meta.appendChild(dateTime);
+            
+            const icons = document.createElement('span');
+            icons.className = 'note-icons';
+            
+            if (note.visibility === 'public') {
+                const publicIcon = document.createElement('span');
+                publicIcon.className = 'note-icon public-icon';
+                publicIcon.textContent = '👁';
+                publicIcon.title = 'Public';
+                icons.appendChild(publicIcon);
+                
+                if (note.public_editable) {
+                    const editableIcon = document.createElement('span');
+                    editableIcon.className = 'note-icon editable-icon';
+                    editableIcon.textContent = '✏';
+                    editableIcon.title = 'Public Editable';
+                    icons.appendChild(editableIcon);
+                }
+            }
+            
+            meta.appendChild(icons);
             li.appendChild(meta);
             
             li.addEventListener('click', () => {
