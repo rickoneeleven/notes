@@ -12,9 +12,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 define('CONFIG_PATH', '../../config.json');
 define('NOTES_DIR', '../../notes/');
+define('DELETED_DIR', '../../notes/deleted/');
 
 if (!file_exists(NOTES_DIR)) {
     mkdir(NOTES_DIR, 0755, true);
+}
+
+if (!file_exists(DELETED_DIR)) {
+    mkdir(DELETED_DIR, 0755, true);
 }
 
 $config = json_decode(file_get_contents(CONFIG_PATH), true);
@@ -65,6 +70,8 @@ function saveNote($note) {
     $filepath = NOTES_DIR . $note['id'] . '.json';
     $note['modified'] = date('c');
     
+    cleanupOldDeletedNotes();
+    
     $lockfile = $filepath . '.lock';
     $fp = fopen($lockfile, 'w');
     
@@ -77,6 +84,43 @@ function saveNote($note) {
     @unlink($lockfile);
     
     return $note;
+}
+
+function cleanupOldDeletedNotes() {
+    $lastCleanup = $_SESSION['last_cleanup'] ?? 0;
+    $today = date('Y-m-d');
+    
+    if (date('Y-m-d', $lastCleanup) === $today) {
+        return;
+    }
+    
+    $files = glob(DELETED_DIR . '*.json');
+    $cutoffTime = time() - (30 * 24 * 60 * 60);
+    
+    foreach ($files as $file) {
+        if (filemtime($file) < $cutoffTime) {
+            @unlink($file);
+        }
+    }
+    
+    $_SESSION['last_cleanup'] = time();
+}
+
+function moveToDeleted($noteId) {
+    $sourceFile = NOTES_DIR . $noteId . '.json';
+    $deletedFile = DELETED_DIR . $noteId . '.json';
+    
+    if (file_exists($sourceFile)) {
+        $note = json_decode(file_get_contents($sourceFile), true);
+        $note['deleted_at'] = date('c');
+        
+        file_put_contents($deletedFile, json_encode($note, JSON_PRETTY_PRINT));
+        unlink($sourceFile);
+        
+        return true;
+    }
+    
+    return false;
 }
 
 switch ($route) {
@@ -167,9 +211,7 @@ switch ($route) {
                     echo json_encode(['error' => 'Forbidden']);
                 }
             } elseif ($method === 'DELETE' && isAuthenticated()) {
-                $filepath = NOTES_DIR . $noteId . '.json';
-                if (file_exists($filepath)) {
-                    unlink($filepath);
+                if (moveToDeleted($noteId)) {
                     echo json_encode(['success' => true]);
                 } else {
                     http_response_code(404);
