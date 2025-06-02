@@ -6,6 +6,7 @@ class NotesApp {
         this.notes = [];
         this.noteLoadedAt = null;
         this.pollTimer = null;
+        this.notesListPollTimer = null;
         this.isIdle = false;
         this.lastActivity = Date.now();
         this.typingTimer = null;
@@ -17,6 +18,7 @@ class NotesApp {
         this.checkAuth();
         this.loadNotes();
         this.bindEvents();
+        this.startNotesListPolling();
     }
     
     checkAuth() {
@@ -431,6 +433,7 @@ class NotesApp {
             await fetch('/api/logout', { method: 'POST' });
             this.isAuthenticated = false;
             this.stopPolling();
+            this.stopNotesListPolling();
             this.updateUI();
             this.loadNotes();
         } catch (error) {
@@ -507,6 +510,88 @@ class NotesApp {
             clearInterval(this.pollTimer);
             this.pollTimer = null;
         }
+    }
+    
+    startNotesListPolling() {
+        this.stopNotesListPolling();
+        
+        this.notesListPollTimer = setInterval(() => {
+            this.trackActivity();
+            
+            // Check if idle for more than 1 hour (3600000ms)
+            if (Date.now() - this.lastActivity > 3600000) {
+                if (!this.isIdle) {
+                    this.setIdleState(true);
+                }
+                return; // Don't poll when idle
+            }
+            
+            this.checkForNotesListUpdates();
+        }, 10000); // Poll every 10 seconds for notes list
+    }
+    
+    stopNotesListPolling() {
+        if (this.notesListPollTimer) {
+            clearInterval(this.notesListPollTimer);
+            this.notesListPollTimer = null;
+        }
+    }
+    
+    async checkForNotesListUpdates() {
+        try {
+            const response = await fetch('/api/notes');
+            const latestNotes = await response.json();
+            
+            // Check if notes list has changed
+            if (this.hasNotesListChanged(latestNotes)) {
+                this.notes = latestNotes;
+                this.renderNotesList();
+                
+                // If current note was updated, update its data but preserve editor state
+                if (this.currentNote) {
+                    const updatedCurrentNote = latestNotes.find(n => n.id === this.currentNote.id);
+                    if (updatedCurrentNote && new Date(updatedCurrentNote.modified) > this.noteLoadedAt) {
+                        // Only update metadata, don't interfere with editing
+                        this.currentNote.title = updatedCurrentNote.title;
+                        this.currentNote.visibility = updatedCurrentNote.visibility;
+                        this.currentNote.public_editable = updatedCurrentNote.public_editable;
+                        this.noteLoadedAt = new Date(updatedCurrentNote.modified);
+                        
+                        // Update UI elements but preserve editor content
+                        document.getElementById('noteTitle').value = updatedCurrentNote.title;
+                        document.getElementById('publicToggle').checked = updatedCurrentNote.visibility === 'public';
+                        document.getElementById('editableToggle').checked = updatedCurrentNote.public_editable;
+                        
+                        const editableWrapper = document.getElementById('editableToggleWrapper');
+                        editableWrapper.style.display = updatedCurrentNote.visibility === 'public' ? 'flex' : 'none';
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Failed to check for notes list updates:', error);
+        }
+    }
+    
+    hasNotesListChanged(latestNotes) {
+        // Check if number of notes changed
+        if (latestNotes.length !== this.notes.length) {
+            return true;
+        }
+        
+        // Check if any note IDs are different or modified times changed
+        for (let i = 0; i < latestNotes.length; i++) {
+            const latest = latestNotes[i];
+            const current = this.notes[i];
+            
+            if (!current || 
+                latest.id !== current.id || 
+                latest.title !== current.title ||
+                latest.modified !== current.modified) {
+                return true;
+            }
+        }
+        
+        return false;
     }
     
     async checkForUpdates() {
