@@ -18,6 +18,7 @@ class NotesApp {
         this.checkAuth();
         this.loadNotes();
         this.bindEvents();
+        this.checkUrlForNote();
         this.startNotesListPolling();
     }
     
@@ -88,6 +89,11 @@ class NotesApp {
             if (e.target.id === 'loginModal') {
                 this.hideLoginModal();
             }
+        });
+        
+        // Handle browser navigation
+        window.addEventListener('popstate', (e) => {
+            this.checkUrlForNote();
         });
         
         // New note
@@ -210,7 +216,7 @@ class NotesApp {
             li.appendChild(meta);
             
             li.addEventListener('click', () => {
-                this.loadNote(note.id);
+                this.selectNote(note);
             });
             
             // Restore active and typing states
@@ -228,14 +234,37 @@ class NotesApp {
     async loadNote(noteId) {
         try {
             const response = await fetch(`/api/notes/${noteId}`);
-            const note = await response.json();
-            this.selectNote(note);
+            if (response.ok) {
+                const note = await response.json();
+                this.selectNote(note); // Update URL when loading note
+            } else {
+                console.error('Note not found or not accessible');
+            }
         } catch (error) {
             console.error('Failed to load note:', error);
         }
     }
     
-    selectNote(note) {
+    async loadNoteFromUrl(noteId) {
+        try {
+            const response = await fetch(`/api/notes/${noteId}`);
+            if (response.ok) {
+                const note = await response.json();
+                this.selectNote(note, false); // Don't update URL since we're loading from URL
+            } else {
+                // Note not found or not accessible, clear URL
+                this.updateUrl(null);
+                this.clearCurrentNote();
+            }
+        } catch (error) {
+            console.error('Failed to load note:', error);
+            // Clear URL on error
+            this.updateUrl(null);
+            this.clearCurrentNote();
+        }
+    }
+    
+    selectNote(note, updateUrl = true) {
         // Clear typing indicator from previous note
         if (this.currentNote) {
             this.setTypingIndicator(false);
@@ -244,6 +273,11 @@ class NotesApp {
         
         this.currentNote = note;
         this.noteLoadedAt = new Date(note.modified);
+        
+        // Update URL if requested
+        if (updateUrl) {
+            this.updateUrl(note.id);
+        }
         
         // Start polling for updates if authenticated
         this.startPolling();
@@ -409,8 +443,9 @@ class NotesApp {
             this.notes = this.notes.filter(n => n.id !== this.currentNote.id);
             this.renderNotesList();
             
-            // Clear editor
+            // Clear editor and URL
             this.currentNote = null;
+            this.updateUrl(null);
             document.getElementById('editor').value = '';
             document.getElementById('noteTitle').value = '';
             document.getElementById('editorHeader').style.display = 'none';
@@ -762,6 +797,55 @@ class NotesApp {
             }
         } catch (error) {
             console.error('Failed to restore note:', error);
+        }
+    }
+    
+    updateUrl(noteId) {
+        const url = noteId ? `#${noteId}` : '';
+        if (window.location.hash !== url) {
+            window.history.pushState({ noteId }, '', url);
+        }
+    }
+    
+    checkUrlForNote() {
+        const hash = window.location.hash.slice(1); // Remove #
+        if (hash && hash !== (this.currentNote?.id || '')) {
+            // Try to find and load the note from URL
+            const note = this.notes.find(n => n.id === hash);
+            if (note) {
+                this.selectNote(note, false); // Don't update URL again
+            } else {
+                // Note not in current list, try to load it directly
+                this.loadNoteFromUrl(hash);
+            }
+        } else if (!hash && this.currentNote) {
+            // Clear current note if no hash
+            this.clearCurrentNote();
+        }
+    }
+    
+    clearCurrentNote() {
+        // Clear typing indicator from current note
+        if (this.currentNote) {
+            this.setTypingIndicator(false);
+            clearTimeout(this.typingTimer);
+        }
+        
+        this.currentNote = null;
+        this.stopPolling();
+        
+        // Clear editor
+        document.getElementById('editor').value = '';
+        document.getElementById('noteTitle').value = '';
+        document.getElementById('editorHeader').style.display = 'none';
+        
+        // Update UI
+        this.updateUI();
+        
+        // Remove active state from all notes
+        const activeNote = document.querySelector('.notes-list li.active');
+        if (activeNote) {
+            activeNote.classList.remove('active');
         }
     }
 }
