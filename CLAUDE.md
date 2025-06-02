@@ -20,7 +20,7 @@ This is a lightweight, web-based notes application inspired by Notepad++. The pr
 ## Application Architecture
 
 ### Technology Stack
-- **Frontend**: Vanilla JavaScript, CSS (Notepad++ inspired dark theme)
+- **Frontend**: Modular ES6 JavaScript, CSS (Notepad++ inspired dark theme)
 - **Backend**: PHP with JSON file storage
 - **Storage**: Individual JSON files per note (no database)
 - **Authentication**: Simple password-based with persistent cookies
@@ -34,10 +34,35 @@ public_html/
 ├── public/                  # Web root directory
 │   ├── index.html          # Main application
 │   ├── css/style.css       # Styling
-│   ├── js/app.js          # Frontend application
+│   ├── js/                 # Frontend modules
+│   │   ├── app.js          # Entry point (4 lines)
+│   │   ├── NotesApp.js     # Main application coordinator (210 lines)
+│   │   ├── UIManager.js    # UI state and modal management (95 lines)
+│   │   ├── AuthManager.js  # Authentication handling (48 lines)
+│   │   ├── NoteManager.js  # Note CRUD operations (167 lines)
+│   │   ├── PollingManager.js # Update polling and activity tracking (97 lines)
+│   │   ├── ConflictResolver.js # Conflict detection and resolution (64 lines)
+│   │   ├── ClipboardManager.js # Clipboard operations (45 lines)
+│   │   ├── DeletedNotesManager.js # Deleted notes handling (69 lines)
+│   │   ├── URLManager.js   # URL routing (33 lines)
+│   │   └── EventHandler.js # DOM event binding (105 lines)
 │   └── api/index.php      # Backend API
 └── .htaccess               # Security configuration
 ```
+
+### Frontend Architecture
+The application follows a modular architecture with clear separation of concerns:
+
+- **NotesApp**: Main coordinator that instantiates and manages all other modules
+- **UIManager**: Handles all UI state changes, modal management, and visual feedback
+- **AuthManager**: Manages authentication state, login/logout operations
+- **NoteManager**: Handles all note CRUD operations and list rendering
+- **PollingManager**: Manages periodic updates and user activity tracking
+- **ConflictResolver**: Detects and resolves concurrent edit conflicts
+- **ClipboardManager**: Handles direct link copying with fallback support
+- **DeletedNotesManager**: Manages deleted notes view and restoration
+- **URLManager**: Handles URL-based note loading
+- **EventHandler**: Centralizes all DOM event binding
 
 ## Development Commands
 
