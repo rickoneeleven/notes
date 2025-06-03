@@ -9,6 +9,7 @@ class UIManager {
         const deletedNotesBtn = document.getElementById('deletedNotesBtn');
         const editorHeader = document.getElementById('editorHeader');
         const editor = document.getElementById('editor');
+        const addAssetBtn = document.getElementById('addAssetBtn');
         
         if (this.app.isAuthenticated) {
             loginBtn.textContent = 'Logout';
@@ -16,6 +17,7 @@ class UIManager {
             deletedNotesBtn.style.display = 'block';
             if (this.app.currentNote) {
                 editorHeader.style.display = 'flex';
+                addAssetBtn.style.display = 'inline-block';
             } else {
                 editorHeader.style.display = 'none';
             }
@@ -26,6 +28,7 @@ class UIManager {
             newNoteBtn.style.display = 'none';
             deletedNotesBtn.style.display = 'none';
             editorHeader.style.display = 'none';
+            addAssetBtn.style.display = 'none';
             
             if (this.app.currentNote && this.app.currentNote.visibility === 'public' && this.app.currentNote.public_editable) {
                 editor.readOnly = false;

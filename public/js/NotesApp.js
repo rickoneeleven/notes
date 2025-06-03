@@ -7,6 +7,7 @@ import ClipboardManager from './ClipboardManager.js';
 import DeletedNotesManager from './DeletedNotesManager.js';
 import URLManager from './URLManager.js';
 import EventHandler from './EventHandler.js';
+import { AssetManager } from './AssetManager.js';
 
 class NotesApp {
     constructor() {
@@ -19,6 +20,7 @@ class NotesApp {
         
         this.ui = new UIManager(this);
         this.auth = new AuthManager(this);
+        this.assetManager = new AssetManager(this.auth, this.ui);
         this.noteManager = new NoteManager(this);
         this.pollingManager = new PollingManager(this);
         this.conflictResolver = new ConflictResolver(this);
@@ -26,6 +28,8 @@ class NotesApp {
         this.deletedNotesManager = new DeletedNotesManager(this);
         this.urlManager = new URLManager(this);
         this.eventHandler = new EventHandler(this);
+        
+        window.noteManager = this.noteManager;
         
         this.init();
     }
@@ -64,6 +68,10 @@ class NotesApp {
         editableWrapper.style.display = note.visibility === 'public' ? 'flex' : 'none';
         
         this.updateUI();
+        
+        // Set current note for asset manager and render assets
+        this.assetManager.setCurrentNote(note.id);
+        this.assetManager.renderAssets(note.assets || []);
     }
     
     updateActiveNoteInList(newNoteId) {
@@ -136,6 +144,7 @@ class NotesApp {
             document.getElementById('editor').value = '';
             document.getElementById('noteTitle').value = '';
             document.getElementById('editorHeader').style.display = 'none';
+            this.assetManager.renderAssets([]);
         }
     }
     

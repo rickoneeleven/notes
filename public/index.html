@@ -38,7 +38,13 @@
                         <span>Editable</span>
                     </label>
                     <button id="directLinkBtn" class="direct-link-btn" title="Get direct link to text version">🔗</button>
+                    <button id="addAssetBtn" class="add-asset-btn" style="display: none;">📎 Add Asset</button>
                     <button id="deleteNoteBtn" class="delete-btn">Delete</button>
+                </div>
+            </div>
+            <div id="assetsBar" class="assets-bar" style="display: none;">
+                <div class="assets-list" id="assetsList">
+                    <!-- Assets will be displayed here -->
                 </div>
             </div>
             <textarea id="editor" class="editor" placeholder="Select a note or create a new one..."></textarea>
@@ -69,6 +75,19 @@
             </div>
         </div>
     </div>
+    
+    <div id="renameAssetModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h3>Rename Asset</h3>
+            <input type="text" id="renameAssetInput" class="modal-input" placeholder="New filename">
+            <div class="modal-buttons">
+                <button id="renameAssetConfirm" class="modal-button">Rename</button>
+                <button id="renameAssetCancel" class="modal-button cancel">Cancel</button>
+            </div>
+        </div>
+    </div>
+    
+    <input type="file" id="assetFileInput" style="display: none;" />
     
     <script type="module" src="js/app.js"></script>
 </body>

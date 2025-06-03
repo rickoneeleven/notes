@@ -13,6 +13,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 define('CONFIG_PATH', '../../config.json');
 define('NOTES_DIR', '../../notes/');
 define('DELETED_DIR', '../../notes/deleted/');
+define('MAX_UPLOAD_SIZE', 50 * 1024 * 1024); // 50MB
+
+require_once 'assets.php';
 
 if (!file_exists(NOTES_DIR)) {
     mkdir(NOTES_DIR, 0755, true);
@@ -99,6 +102,14 @@ function cleanupOldDeletedNotes() {
     
     foreach ($files as $file) {
         if (filemtime($file) < $cutoffTime) {
+            $note = json_decode(file_get_contents($file), true);
+            if ($note && isset($note['id'])) {
+                $assetsDir = NOTES_DIR . $note['id'] . '/assets';
+                if (is_dir($assetsDir)) {
+                    deleteDirectory($assetsDir);
+                    @rmdir(NOTES_DIR . $note['id']);
+                }
+            }
             @unlink($file);
         }
     }
@@ -116,6 +127,17 @@ function moveToDeleted($noteId) {
         
         file_put_contents($deletedFile, json_encode($note, JSON_PRETTY_PRINT));
         unlink($sourceFile);
+        
+        // Move assets directory to deleted folder structure
+        $sourceAssets = NOTES_DIR . $noteId . '/assets';
+        $deletedAssets = DELETED_DIR . $noteId . '/assets';
+        if (is_dir($sourceAssets)) {
+            if (!file_exists(DELETED_DIR . $noteId)) {
+                mkdir(DELETED_DIR . $noteId, 0755, true);
+            }
+            rename($sourceAssets, $deletedAssets);
+            @rmdir(NOTES_DIR . $noteId);
+        }
         
         return true;
     }
@@ -156,6 +178,17 @@ function restoreNote($noteId) {
         
         file_put_contents($targetFile, json_encode($note, JSON_PRETTY_PRINT));
         unlink($deletedFile);
+        
+        // Restore assets directory
+        $deletedAssets = DELETED_DIR . $noteId . '/assets';
+        $targetAssets = NOTES_DIR . $noteId . '/assets';
+        if (is_dir($deletedAssets)) {
+            if (!file_exists(NOTES_DIR . $noteId)) {
+                mkdir(NOTES_DIR . $noteId, 0755, true);
+            }
+            rename($deletedAssets, $targetAssets);
+            @rmdir(DELETED_DIR . $noteId);
+        }
         
         return $note;
     }
@@ -201,7 +234,8 @@ switch ($route) {
                 'created' => date('c'),
                 'modified' => date('c'),
                 'visibility' => $input['visibility'] ?? 'private',
-                'public_editable' => $input['public_editable'] ?? false
+                'public_editable' => $input['public_editable'] ?? false,
+                'assets' => []
             ];
             $note = saveNote($note);
             echo json_encode($note);
@@ -222,7 +256,28 @@ switch ($route) {
         break;
         
     default:
-        if (preg_match('/^notes\/(.+)$/', $route, $matches)) {
+        if (preg_match('/^notes\/([^\/]+)\/assets$/', $route, $matches)) {
+            $noteId = $matches[1];
+            
+            if ($method === 'POST' && isAuthenticated()) {
+                handleAssetUpload($noteId);
+            } else {
+                http_response_code(403);
+                echo json_encode(['error' => 'Forbidden']);
+            }
+        } elseif (preg_match('/^notes\/([^\/]+)\/assets\/(.+)$/', $route, $matches)) {
+            $noteId = $matches[1];
+            $assetName = urldecode($matches[2]);
+            
+            if ($method === 'DELETE' && isAuthenticated()) {
+                handleAssetDelete($noteId, $assetName);
+            } elseif ($method === 'PUT' && isAuthenticated()) {
+                handleAssetRename($noteId, $assetName);
+            } else {
+                http_response_code(403);
+                echo json_encode(['error' => 'Forbidden']);
+            }
+        } elseif (preg_match('/^notes\/(.+)$/', $route, $matches)) {
             $noteId = $matches[1];
             
             if ($method === 'GET') {

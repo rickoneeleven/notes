@@ -7,6 +7,7 @@ class EventHandler {
         this.bindAuthEvents();
         this.bindEditorEvents();
         this.bindNoteManagementEvents();
+        this.bindAssetEvents();
         this.bindModalEvents();
         this.bindNavigationEvents();
     }
@@ -75,6 +76,38 @@ class EventHandler {
         
         document.getElementById('deletedNotesBtn').addEventListener('click', () => {
             this.app.deletedNotesManager.showDeletedNotes();
+        });
+    }
+
+    bindAssetEvents() {
+        document.getElementById('addAssetBtn').addEventListener('click', () => {
+            this.app.assetManager.handleFileSelect();
+        });
+        
+        document.getElementById('assetFileInput').addEventListener('change', (e) => {
+            this.app.assetManager.handleFileChange(e);
+        });
+        
+        document.getElementById('renameAssetConfirm').addEventListener('click', () => {
+            this.app.assetManager.handleRename();
+        });
+        
+        document.getElementById('renameAssetCancel').addEventListener('click', () => {
+            this.app.assetManager.hideRenameModal();
+        });
+        
+        document.getElementById('renameAssetInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                this.app.assetManager.handleRename();
+            } else if (e.key === 'Escape') {
+                this.app.assetManager.hideRenameModal();
+            }
+        });
+        
+        document.getElementById('renameAssetModal').addEventListener('click', (e) => {
+            if (e.target.id === 'renameAssetModal') {
+                this.app.assetManager.hideRenameModal();
+            }
         });
     }
 

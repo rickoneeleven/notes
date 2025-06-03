@@ -163,6 +163,17 @@ class NoteManager {
         
         return icons;
     }
+
+    updateCurrentNoteAssets(assets) {
+        if (this.app.currentNote) {
+            this.app.currentNote.assets = assets;
+            // Update the note in the notes array
+            const index = this.app.notes.findIndex(n => n.id === this.app.currentNote.id);
+            if (index !== -1) {
+                this.app.notes[index].assets = assets;
+            }
+        }
+    }
 }
 
 export default NoteManager;

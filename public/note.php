@@ -1,12 +1,66 @@
 <?php
+session_start();
+
 /**
- * Note handler for crawler-friendly URLs
+ * Note and asset handler
  * 
- * Detects if request is from a crawler/LLM and serves plain text,
- * otherwise redirects to the main app with hash URL
+ * Handles both crawler-friendly note URLs and asset serving
  */
 
-// Get note ID from URL path
+// Check if this is an asset request
+if (isset($_GET['id']) && isset($_GET['asset'])) {
+    define('NOTES_DIR', '../notes/');
+    
+    $noteId = $_GET['id'];
+    $assetName = $_GET['asset'];
+    
+    // Validate note ID format
+    if (!preg_match('/^note_[a-f0-9.]+$/', $noteId)) {
+        http_response_code(404);
+        exit('Not found');
+    }
+    
+    // Check if note exists and get visibility
+    $noteFile = NOTES_DIR . $noteId . '.json';
+    if (!file_exists($noteFile)) {
+        http_response_code(404);
+        exit('Note not found');
+    }
+    
+    $note = json_decode(file_get_contents($noteFile), true);
+    $isAuthenticated = isset($_SESSION['authenticated']) && $_SESSION['authenticated'] === true;
+    
+    // Check access permissions
+    if ($note['visibility'] === 'private' && !$isAuthenticated) {
+        http_response_code(403);
+        exit('Access denied');
+    }
+    
+    // Validate asset filename
+    $assetName = basename($assetName);
+    $assetPath = NOTES_DIR . $noteId . '/assets/' . $assetName;
+    
+    if (!file_exists($assetPath)) {
+        http_response_code(404);
+        exit('Asset not found');
+    }
+    
+    // Determine content type
+    $finfo = finfo_open(FILEINFO_MIME_TYPE);
+    $contentType = finfo_file($finfo, $assetPath);
+    finfo_close($finfo);
+    
+    // Set appropriate headers
+    header('Content-Type: ' . $contentType);
+    header('Content-Length: ' . filesize($assetPath));
+    header('Content-Disposition: inline; filename="' . $assetName . '"');
+    
+    // Output file
+    readfile($assetPath);
+    exit;
+}
+
+// Otherwise, handle note requests
 $path = $_SERVER['REQUEST_URI'];
 $matches = [];
 if (preg_match('/\/note\/([^\/\?]+)/', $path, $matches)) {

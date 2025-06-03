@@ -229,6 +229,106 @@ h1 {
     background: #cd3636;
 }
 
+.add-asset-btn {
+    background: #0e639c;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 12px;
+}
+
+.add-asset-btn:hover {
+    background: #1177bb;
+}
+
+.assets-bar {
+    background: #252526;
+    border-top: 1px solid #3e3e42;
+    padding: 10px;
+    max-height: 120px;
+    overflow-y: auto;
+}
+
+.assets-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.asset-item {
+    display: inline-flex;
+    align-items: center;
+    background: #2d2d30;
+    padding: 5px 10px;
+    border-radius: 3px;
+    font-size: 12px;
+}
+
+.asset-link {
+    color: #569cd6;
+    text-decoration: none;
+    margin-right: 8px;
+}
+
+.asset-link:hover {
+    text-decoration: underline;
+}
+
+.asset-rename,
+.asset-delete {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 2px 4px;
+    margin-left: 4px;
+    color: #cccccc;
+    font-size: 14px;
+}
+
+.asset-rename:hover,
+.asset-delete:hover {
+    color: #ffffff;
+}
+
+.modal-input {
+    width: 100%;
+    padding: 10px;
+    background: #1e1e1e;
+    border: 1px solid #3e3e42;
+    color: #d4d4d4;
+    margin-bottom: 15px;
+    font-family: inherit;
+}
+
+.modal-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+.modal-button {
+    flex: 1;
+    padding: 10px;
+    background: #0e639c;
+    color: white;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.modal-button:hover {
+    background: #1177bb;
+}
+
+.modal-button.cancel {
+    background: #6e6e6e;
+}
+
+.modal-button.cancel:hover {
+    background: #848484;
+}
+
 .editor {
     flex: 1;
     background: #1e1e1e;
