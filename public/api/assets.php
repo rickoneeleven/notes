@@ -40,7 +40,10 @@ function generateAssetFilename($noteId, $originalName) {
 }
 
 function handleAssetUpload($noteId) {
+    error_log("handleAssetUpload called for note: $noteId");
+    
     if (!isset($_FILES['asset'])) {
+        error_log("No file in \$_FILES['asset']");
         http_response_code(400);
         echo json_encode(['error' => 'No file uploaded']);
         return;
@@ -48,13 +51,17 @@ function handleAssetUpload($noteId) {
     
     $note = getNote($noteId, true);
     if (!$note) {
+        error_log("Note not found: $noteId");
         http_response_code(404);
         echo json_encode(['error' => 'Note not found']);
         return;
     }
     
     $file = $_FILES['asset'];
+    error_log("File upload info: " . json_encode($file));
+    
     if ($file['error'] !== UPLOAD_ERR_OK) {
+        error_log("Upload error code: " . $file['error']);
         http_response_code(400);
         echo json_encode(['error' => 'Upload failed']);
         return;
@@ -69,7 +76,11 @@ function handleAssetUpload($noteId) {
     $filename = generateAssetFilename($noteId, $file['name']);
     $targetPath = getAssetPath($noteId, $filename);
     
+    error_log("Generated filename: $filename");
+    error_log("Target path: $targetPath");
+    
     if (move_uploaded_file($file['tmp_name'], $targetPath)) {
+        error_log("File uploaded successfully to: $targetPath");
         if (!isset($note['assets'])) {
             $note['assets'] = [];
         }
@@ -80,6 +91,9 @@ function handleAssetUpload($noteId) {
         
         echo json_encode(['filename' => $filename, 'assets' => $note['assets']]);
     } else {
+        error_log("Failed to move uploaded file from " . $file['tmp_name'] . " to $targetPath");
+        error_log("Directory exists: " . (file_exists(dirname($targetPath)) ? 'Yes' : 'No'));
+        error_log("Directory writable: " . (is_writable(dirname($targetPath)) ? 'Yes' : 'No'));
         http_response_code(500);
         echo json_encode(['error' => 'Failed to save file']);
     }

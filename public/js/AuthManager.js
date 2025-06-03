@@ -44,6 +44,10 @@ class AuthManager {
             console.error('Logout failed:', error);
         }
     }
+    
+    isAuthenticated() {
+        return this.app.isAuthenticated;
+    }
 }
 
 export default AuthManager;

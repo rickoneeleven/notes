@@ -29,6 +29,8 @@ $config = json_decode(file_get_contents(CONFIG_PATH), true);
 $route = $_GET['route'] ?? '';
 $method = $_SERVER['REQUEST_METHOD'];
 
+error_log("API Request - Method: $method, Route: $route");
+
 function isAuthenticated() {
     return isset($_SESSION['authenticated']) && $_SESSION['authenticated'] === true;
 }

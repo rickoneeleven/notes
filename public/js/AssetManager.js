@@ -2,6 +2,7 @@ export class AssetManager {
     constructor(authManager, uiManager) {
         this.authManager = authManager;
         this.uiManager = uiManager;
+        this.app = null;
         this.currentNoteId = null;
         this.assetsList = document.getElementById('assetsList');
         this.assetsBar = document.getElementById('assetsBar');
@@ -13,13 +14,21 @@ export class AssetManager {
         this.currentAssetToRename = null;
     }
 
+    setApp(app) {
+        this.app = app;
+    }
+
     setCurrentNote(noteId) {
         this.currentNoteId = noteId;
     }
 
     async uploadAsset(file) {
+        console.log('uploadAsset called with file:', file);
+        console.log('Current note ID:', this.currentNoteId);
+        console.log('Is authenticated:', this.authManager.isAuthenticated());
+        
         if (!this.currentNoteId || !this.authManager.isAuthenticated()) {
-            this.uiManager.showStatus('Must be logged in to add assets');
+            alert('Must be logged in to add assets');
             return;
         }
 
@@ -27,21 +36,29 @@ export class AssetManager {
         formData.append('asset', file);
 
         try {
-            const response = await fetch(`/api/notes/${this.currentNoteId}/assets`, {
+            const url = `/api/notes/${this.currentNoteId}/assets`;
+            console.log('Uploading to URL:', url);
+            
+            const response = await fetch(url, {
                 method: 'POST',
                 body: formData
             });
 
+            console.log('Upload response status:', response.status);
+            
             if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Upload error response:', errorText);
                 throw new Error('Upload failed');
             }
 
             const result = await response.json();
-            this.uiManager.showStatus('Asset uploaded successfully');
+            console.log('Upload result:', result);
+            console.log('Asset uploaded successfully');
             return result.assets;
         } catch (error) {
             console.error('Asset upload error:', error);
-            this.uiManager.showStatus('Failed to upload asset');
+            console.error('Failed to upload asset');
             return null;
         }
     }
@@ -61,11 +78,11 @@ export class AssetManager {
             }
 
             const result = await response.json();
-            this.uiManager.showStatus('Asset deleted');
+            console.log('Asset deleted');
             return result.assets;
         } catch (error) {
             console.error('Asset delete error:', error);
-            this.uiManager.showStatus('Failed to delete asset');
+            console.error('Failed to delete asset');
             return null;
         }
     }
@@ -89,11 +106,11 @@ export class AssetManager {
             }
 
             const result = await response.json();
-            this.uiManager.showStatus('Asset renamed');
+            console.log('Asset renamed');
             return result.assets;
         } catch (error) {
             console.error('Asset rename error:', error);
-            this.uiManager.showStatus('Failed to rename asset');
+            console.error('Failed to rename asset');
             return null;
         }
     }
@@ -132,8 +149,8 @@ export class AssetManager {
                     const updatedAssets = await this.deleteAsset(assetName);
                     if (updatedAssets !== null) {
                         this.renderAssets(updatedAssets);
-                        if (window.noteManager) {
-                            window.noteManager.updateCurrentNoteAssets(updatedAssets);
+                        if (this.app && this.app.noteManager) {
+                            this.app.noteManager.updateCurrentNoteAssets(updatedAssets);
                         }
                     }
                 }
@@ -173,26 +190,30 @@ export class AssetManager {
         const updatedAssets = await this.renameAsset(this.currentAssetToRename, newName);
         if (updatedAssets !== null) {
             this.renderAssets(updatedAssets);
-            if (window.noteManager) {
-                window.noteManager.updateCurrentNoteAssets(updatedAssets);
+            if (this.app && this.app.noteManager) {
+                this.app.noteManager.updateCurrentNoteAssets(updatedAssets);
             }
         }
         this.hideRenameModal();
     }
 
     handleFileSelect() {
+        console.log('handleFileSelect called');
+        console.log('File input element:', this.fileInput);
         this.fileInput.click();
     }
 
     async handleFileChange(event) {
+        console.log('handleFileChange called');
         const file = event.target.files[0];
+        console.log('Selected file:', file);
         if (!file) return;
 
         const updatedAssets = await this.uploadAsset(file);
         if (updatedAssets !== null) {
             this.renderAssets(updatedAssets);
-            if (window.noteManager) {
-                window.noteManager.updateCurrentNoteAssets(updatedAssets);
+            if (this.app && this.app.noteManager) {
+                this.app.noteManager.updateCurrentNoteAssets(updatedAssets);
             }
         }
 

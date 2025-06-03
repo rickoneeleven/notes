@@ -29,6 +29,8 @@ class NotesApp {
         this.urlManager = new URLManager(this);
         this.eventHandler = new EventHandler(this);
         
+        this.assetManager.setApp(this);
+        
         window.noteManager = this.noteManager;
         
         this.init();

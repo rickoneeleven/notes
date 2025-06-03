@@ -80,13 +80,26 @@ class EventHandler {
     }
 
     bindAssetEvents() {
-        document.getElementById('addAssetBtn').addEventListener('click', () => {
-            this.app.assetManager.handleFileSelect();
-        });
+        const addAssetBtn = document.getElementById('addAssetBtn');
+        const assetFileInput = document.getElementById('assetFileInput');
         
-        document.getElementById('assetFileInput').addEventListener('change', (e) => {
-            this.app.assetManager.handleFileChange(e);
-        });
+        console.log('Binding asset events');
+        console.log('Add asset button:', addAssetBtn);
+        console.log('Asset file input:', assetFileInput);
+        
+        if (addAssetBtn) {
+            addAssetBtn.addEventListener('click', () => {
+                console.log('Add asset button clicked');
+                this.app.assetManager.handleFileSelect();
+            });
+        }
+        
+        if (assetFileInput) {
+            assetFileInput.addEventListener('change', (e) => {
+                console.log('File input changed');
+                this.app.assetManager.handleFileChange(e);
+            });
+        }
         
         document.getElementById('renameAssetConfirm').addEventListener('click', () => {
             this.app.assetManager.handleRename();
