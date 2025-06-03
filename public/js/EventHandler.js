@@ -31,7 +31,7 @@ class EventHandler {
     bindEditorEvents() {
         const editor = document.getElementById('editor');
         editor.addEventListener('input', () => {
-            this.app.pollingManager.trackActivity();
+            this.app.pollingManager.trackEdit();
             this.app.handleTyping();
             
             if (!this.app.currentNote && this.app.isAuthenticated && editor.value.trim()) {
@@ -47,7 +47,7 @@ class EventHandler {
         });
         
         document.getElementById('noteTitle').addEventListener('input', () => {
-            this.app.pollingManager.trackActivity();
+            this.app.pollingManager.trackEdit();
             this.app.handleTyping();
             this.app.scheduleAutosave();
         });

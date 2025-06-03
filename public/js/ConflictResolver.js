@@ -30,6 +30,13 @@ class ConflictResolver {
             return false;
         }
         
+        // Auto-sync if user hasn't edited recently (within last 10 seconds)
+        if (!this.app.pollingManager.hasRecentEdits()) {
+            console.log('Auto-syncing remote changes (no recent local edits)');
+            this.app.selectNote(latestNote);
+            return false;
+        }
+        
         const userChoice = confirm(
             'This note has been modified elsewhere. Your changes:\n\n' +
             currentContent.slice(0, 200) + (currentContent.length > 200 ? '...' : '') + 

@@ -5,6 +5,7 @@ class PollingManager {
         this.notesListPollTimer = null;
         this.isIdle = false;
         this.lastActivity = Date.now();
+        this.lastEditTime = 0;
     }
 
     trackActivity() {
@@ -12,6 +13,15 @@ class PollingManager {
         if (this.isIdle) {
             this.setIdleState(false);
         }
+    }
+
+    trackEdit() {
+        this.lastEditTime = Date.now();
+        this.trackActivity();
+    }
+
+    hasRecentEdits(thresholdMs = 10000) {
+        return Date.now() - this.lastEditTime < thresholdMs;
     }
 
     setIdleState(idle) {
