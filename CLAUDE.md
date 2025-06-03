@@ -99,7 +99,7 @@ The application follows a modular architecture with clear separation of concerns
 - **Production Environment**: Always test changes carefully
 - **JSON Storage**: Individual files prevent lock contention, easy backup/restore
 
-## Core Development Principles (Fetched)
+## Core Development Principles (Fetched from https://notes.pinescore.com/note/note_683df4954cc0f4.04393849)
 
 ### Code Quality
 - **Simplicity and Clarity**: Prioritize simple, clear code over complex solutions
@@ -114,7 +114,7 @@ The application follows a modular architecture with clear separation of concerns
 - **No Complex Service Creation**: Never create complex services within consumer components
 
 ### Structural Rules
-- **400 Line Limit**: Maximum file length is 400 lines
+- **400 Line Limit**: Maximum file length is 400 lines (strict limit)
 - **File Breakdown**: Files exceeding 400 lines must be broken down
 - **User Permission**: Require permission before appending to large files
 - **DRY Principle**: Extract and reuse common logic patterns
@@ -124,5 +124,10 @@ The application follows a modular architecture with clear separation of concerns
 - **Focused Responsibility**: Each component has distinct, focused responsibility
 - **Refactor Over Comment**: Refactor unclear code instead of adding explanatory comments
 - **Remove Redundancy**: Remove redundant comments during refactoring
+
+### Verification Steps
+- Use find command to check file line count after completing work
+- Reiterate design principles if file exceeds 400 lines
+- Maintain code modularity and readability
 
 **Overarching Principle**: "Simplicity, Clarity & Conciseness" in all development
