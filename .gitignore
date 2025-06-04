@@ -47,3 +47,6 @@ problem_report.txt
 
 # Package lock files (we'll use npm ci for consistent installs)
 package-lock.json
+
+# Migration backup directories
+migration_backup_*/
