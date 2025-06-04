@@ -43,7 +43,12 @@ debug-*.js
 simulate-*.js
 test-*.js
 test-*.html
+test.html
 problem_report.txt
+problem_report.md
+possible_solution.md
+*.backup
+index.html.backup
 
 # Package lock files (we'll use npm ci for consistent installs)
 package-lock.json
