@@ -12,6 +12,7 @@ logs/
 *.tmp
 *.log
 
+
 # PHP session files
 sessions/
 
@@ -31,6 +32,7 @@ node_modules/
 
 # Vite build output
 dist/
+.vite/
 
 # Vite-generated assets (built files should not be tracked)
 public/assets/main-*.js
