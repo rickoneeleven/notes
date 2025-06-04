@@ -11,8 +11,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 define('CONFIG_PATH', '../config.json');
-define('NOTES_DIR', '../notes/');
-define('DELETED_DIR', '../notes/deleted/');
+define('NOTES_DIR', '../../notes/');
+define('DELETED_DIR', '../../notes/deleted/');
 define('MAX_UPLOAD_SIZE', 50 * 1024 * 1024); // 50MB
 
 require_once 'assets.php';
