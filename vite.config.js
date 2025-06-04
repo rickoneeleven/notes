@@ -3,6 +3,7 @@ import { resolve } from 'path';
 
 export default defineConfig({
   root: 'public',
+  publicDir: '../static_server_files',
   build: {
     outDir: '../dist',
     emptyOutDir: true,
