@@ -76,38 +76,18 @@ class NotesApp {
             let shouldBeReadOnly = true;
             
             if (this.isAuthenticated) {
-                // Authenticated users can edit their own notes
                 shouldBeReadOnly = false;
-            } else if (this.currentNote && this.currentNote.visibility === 'public' && this.currentNote.public_editable === true) {
-                // Non-authenticated users can edit public_editable notes
+            } else if (this.currentNote && this.currentNote.visibility === 'public' && this.currentNote.public_editable) {
                 shouldBeReadOnly = false;
             } else if (!this.currentNote) {
-                // No note selected - read only for non-authenticated
                 shouldBeReadOnly = !this.isAuthenticated;
             }
             
-            console.log('[NotesApp] Updating editor read-only state:', {
-                shouldBeReadOnly,
-                isAuthenticated: this.isAuthenticated,
-                currentNote: this.currentNote,
-                noteVisibility: this.currentNote?.visibility,
-                notePublicEditable: this.currentNote?.public_editable,
-                notePublicEditableType: typeof this.currentNote?.public_editable,
-                notePublicEditableValue: this.currentNote?.public_editable,
-                conditionCheck: this.currentNote && this.currentNote.visibility === 'public' && this.currentNote.public_editable
-            });
             this.editorManager.setReadOnly(shouldBeReadOnly);
         }
     }
     
     selectNote(note) {
-        console.log('[NotesApp] selectNote called with:', {
-            noteId: note.id,
-            noteTitle: note.title,
-            visibility: note.visibility,
-            public_editable: note.public_editable,
-            public_editable_type: typeof note.public_editable
-        });
         
         if (this.currentNote) {
             this.ui.setTypingIndicator(this.currentNote.id, false);
@@ -125,8 +105,6 @@ class NotesApp {
         document.getElementById('noteTitle').value = note.title;
         document.getElementById('publicToggle').checked = note.visibility === 'public';
         document.getElementById('editableToggle').checked = note.public_editable;
-        
-        this.updateUI();
         
         const editableWrapper = document.getElementById('editableToggleWrapper');
         editableWrapper.style.display = note.visibility === 'public' ? 'flex' : 'none';

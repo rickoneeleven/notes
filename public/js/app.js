@@ -1,5 +1,5 @@
 import NotesApp from './NotesApp.js';
 
 document.addEventListener('DOMContentLoaded', () => {
-    new NotesApp();
+    window.notesApp = new NotesApp();
 });

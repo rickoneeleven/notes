@@ -27,6 +27,7 @@
     "@codemirror/language": "^6.11.1",
     "@codemirror/state": "^6.5.2",
     "@codemirror/theme-one-dark": "^6.1.2",
-    "@codemirror/view": "^6.37.1"
+    "@codemirror/view": "^6.37.1",
+    "puppeteer": "^24.10.0"
   }
 }

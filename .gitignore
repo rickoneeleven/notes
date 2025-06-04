@@ -21,7 +21,6 @@ public/.well-known/
 # OS generated files
 .DS_Store
 Thumbs.db
-
 # Editor files
 *.swp
 *.swo
@@ -32,6 +31,17 @@ node_modules/
 
 # Vite build output
 dist/
+
+# Vite-generated assets (built files should not be tracked)
+public/assets/main-*.js
+public/assets/main-*.css
+
+# Development and debug files
+debug-*.js
+simulate-*.js
+test-*.js
+test-*.html
+problem_report.txt
 
 # Package lock files (we'll use npm ci for consistent installs)
 package-lock.json
