@@ -20,6 +20,7 @@ class AuthManager {
                 this.app.isAuthenticated = true;
                 this.app.ui.hideLoginModal();
                 this.app.ui.updateAuthenticationUI();
+                this.app.updateUI();
                 this.app.noteManager.loadNotes();
                 return true;
             } else {

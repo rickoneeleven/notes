@@ -26,3 +26,12 @@ Thumbs.db
 *.swp
 *.swo
 *~
+
+# Node modules
+node_modules/
+
+# Vite build output
+dist/
+
+# Package lock files (we'll use npm ci for consistent installs)
+package-lock.json

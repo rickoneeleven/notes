@@ -8,6 +8,7 @@ import DeletedNotesManager from './DeletedNotesManager.js';
 import URLManager from './URLManager.js';
 import EventHandler from './EventHandler.js';
 import { AssetManager } from './AssetManager.js';
+import EditorManager from './EditorManager.js';
 
 class NotesApp {
     constructor() {
@@ -28,8 +29,10 @@ class NotesApp {
         this.deletedNotesManager = new DeletedNotesManager(this);
         this.urlManager = new URLManager(this);
         this.eventHandler = new EventHandler(this);
+        this.editorManager = new EditorManager();
         
         this.assetManager.setApp(this);
+        this.editorManager.setApp(this);
         
         window.noteManager = this.noteManager;
         
@@ -37,6 +40,28 @@ class NotesApp {
     }
     
     init() {
+        const editorMount = document.getElementById('editor');
+        console.log('[NotesApp] Initializing with editor mount point:', editorMount);
+        
+        this.editorManager.init(editorMount, {
+            readOnly: !this.isAuthenticated
+        });
+        
+        this.editorManager.onContentChange(() => {
+            console.log('[NotesApp] Editor content changed');
+            this.pollingManager.trackEdit();
+            this.handleTyping();
+            
+            const content = this.editorManager.getContent();
+            if (!this.currentNote && this.isAuthenticated && content.trim()) {
+                console.log('[NotesApp] Creating new note from editor content');
+                this.noteManager.createNote(content);
+                return;
+            }
+            
+            this.scheduleAutosave();
+        });
+        
         this.auth.checkAuthentication();
         this.noteManager.loadNotes();
         this.eventHandler.bindEvents();
@@ -46,9 +71,44 @@ class NotesApp {
     
     updateUI() {
         this.ui.updateAuthenticationUI();
+        
+        if (this.editorManager && this.editorManager.view) {
+            let shouldBeReadOnly = true;
+            
+            if (this.isAuthenticated) {
+                // Authenticated users can edit their own notes
+                shouldBeReadOnly = false;
+            } else if (this.currentNote && this.currentNote.visibility === 'public' && this.currentNote.public_editable === true) {
+                // Non-authenticated users can edit public_editable notes
+                shouldBeReadOnly = false;
+            } else if (!this.currentNote) {
+                // No note selected - read only for non-authenticated
+                shouldBeReadOnly = !this.isAuthenticated;
+            }
+            
+            console.log('[NotesApp] Updating editor read-only state:', {
+                shouldBeReadOnly,
+                isAuthenticated: this.isAuthenticated,
+                currentNote: this.currentNote,
+                noteVisibility: this.currentNote?.visibility,
+                notePublicEditable: this.currentNote?.public_editable,
+                notePublicEditableType: typeof this.currentNote?.public_editable,
+                notePublicEditableValue: this.currentNote?.public_editable,
+                conditionCheck: this.currentNote && this.currentNote.visibility === 'public' && this.currentNote.public_editable
+            });
+            this.editorManager.setReadOnly(shouldBeReadOnly);
+        }
     }
     
     selectNote(note) {
+        console.log('[NotesApp] selectNote called with:', {
+            noteId: note.id,
+            noteTitle: note.title,
+            visibility: note.visibility,
+            public_editable: note.public_editable,
+            public_editable_type: typeof note.public_editable
+        });
+        
         if (this.currentNote) {
             this.ui.setTypingIndicator(this.currentNote.id, false);
             clearTimeout(this.typingTimer);
@@ -61,10 +121,12 @@ class NotesApp {
         
         this.pollingManager.startNotePolling();
         
-        document.getElementById('editor').value = note.content;
+        this.editorManager.setContent(note.content);
         document.getElementById('noteTitle').value = note.title;
         document.getElementById('publicToggle').checked = note.visibility === 'public';
         document.getElementById('editableToggle').checked = note.public_editable;
+        
+        this.updateUI();
         
         const editableWrapper = document.getElementById('editableToggleWrapper');
         editableWrapper.style.display = note.visibility === 'public' ? 'flex' : 'none';
@@ -118,7 +180,7 @@ class NotesApp {
         }
         
         const noteData = {
-            content: document.getElementById('editor').value
+            content: this.editorManager.getContent()
         };
         
         if (this.isAuthenticated) {
@@ -143,7 +205,7 @@ class NotesApp {
         const success = await this.noteManager.deleteNote(this.currentNote.id);
         if (success) {
             this.currentNote = null;
-            document.getElementById('editor').value = '';
+            this.editorManager.setContent('');
             document.getElementById('noteTitle').value = '';
             document.getElementById('editorHeader').style.display = 'none';
             this.assetManager.renderAssets([]);

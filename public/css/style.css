@@ -334,11 +334,45 @@ h1 {
     background: #1e1e1e;
     color: #d4d4d4;
     border: none;
-    padding: 20px;
     font-family: 'Consolas', 'Courier New', monospace;
     font-size: 14px;
     line-height: 1.5;
     resize: none;
+    overflow: auto;
+}
+
+/* CodeMirror Overrides */
+.editor .cm-editor {
+    height: 100%;
+}
+
+.editor .cm-editor.cm-focused {
+    outline: none;
+}
+
+.editor .cm-scroller {
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.editor .cm-content {
+    padding: 20px;
+}
+
+.editor .cm-line {
+    padding-left: 0;
+    padding-right: 0;
+}
+
+.editor .cm-gutters {
+    background-color: #252526;
+    border-right: 1px solid #3e3e42;
+}
+
+.editor .cm-lineNumbers .cm-gutterElement {
+    color: #858585;
+    padding: 0 16px 0 8px;
 }
 
 .editor:focus {

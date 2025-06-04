@@ -8,7 +8,6 @@ class UIManager {
         const newNoteBtn = document.getElementById('newNoteBtn');
         const deletedNotesBtn = document.getElementById('deletedNotesBtn');
         const editorHeader = document.getElementById('editorHeader');
-        const editor = document.getElementById('editor');
         const addAssetBtn = document.getElementById('addAssetBtn');
         
         if (this.app.isAuthenticated) {
@@ -21,8 +20,6 @@ class UIManager {
             } else {
                 editorHeader.style.display = 'none';
             }
-            editor.readOnly = false;
-            editor.placeholder = this.app.currentNote ? '' : 'Select a note or start typing to create a new one...';
         } else {
             loginBtn.textContent = 'Login';
             newNoteBtn.style.display = 'none';
@@ -30,17 +27,12 @@ class UIManager {
             editorHeader.style.display = 'none';
             addAssetBtn.style.display = 'none';
             
-            if (this.app.currentNote && this.app.currentNote.visibility === 'public' && this.app.currentNote.public_editable) {
-                editor.readOnly = false;
-                editor.placeholder = '';
-            } else {
-                editor.readOnly = true;
-                editor.placeholder = this.app.currentNote ? 'This note is read-only' : 'Select a note from the left to read it';
-                if (!this.app.currentNote) {
-                    editor.value = '';
-                }
+            if (!this.app.currentNote && this.app.editorManager) {
+                this.app.editorManager.setContent('');
             }
         }
+        
+        console.log('[UIManager] updateAuthenticationUI completed');
     }
 
     showLoginModal() {
@@ -72,16 +64,18 @@ class UIManager {
     }
 
     setIdleState(idle) {
-        const editor = document.getElementById('editor');
+        const editorElement = document.getElementById('editor');
         
         if (idle) {
-            editor.style.opacity = '0.5';
-            editor.placeholder = 'Click to wake up and resume editing...';
-            editor.blur();
+            editorElement.style.opacity = '0.5';
+            if (this.app.editorManager && this.app.editorManager.view) {
+                this.app.editorManager.view.contentDOM.blur();
+            }
         } else {
-            editor.style.opacity = '1';
-            editor.placeholder = '';
+            editorElement.style.opacity = '1';
         }
+        
+        console.log('[UIManager] setIdleState:', idle);
     }
 
     setTypingIndicator(noteId, isTyping) {

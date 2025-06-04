@@ -22,7 +22,7 @@ class ConflictResolver {
     }
 
     handleConflict(latestNote) {
-        const currentContent = document.getElementById('editor').value;
+        const currentContent = this.app.editorManager.getContent();
         
         if (latestNote.content === currentContent) {
             this.app.currentNote = latestNote;

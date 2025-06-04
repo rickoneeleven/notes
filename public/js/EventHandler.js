@@ -29,22 +29,7 @@ class EventHandler {
     }
 
     bindEditorEvents() {
-        const editor = document.getElementById('editor');
-        editor.addEventListener('input', () => {
-            this.app.pollingManager.trackEdit();
-            this.app.handleTyping();
-            
-            if (!this.app.currentNote && this.app.isAuthenticated && editor.value.trim()) {
-                this.app.noteManager.createNote(editor.value);
-                return;
-            }
-            
-            this.app.scheduleAutosave();
-        });
-        
-        editor.addEventListener('click', () => {
-            this.app.pollingManager.trackActivity();
-        });
+        console.log('[EventHandler] bindEditorEvents called - editor events now handled by EditorManager');
         
         document.getElementById('noteTitle').addEventListener('input', () => {
             this.app.pollingManager.trackEdit();
