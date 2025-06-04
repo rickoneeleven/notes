@@ -55,3 +55,11 @@ package-lock.json
 
 # Migration backup directories
 migration_backup_*/
+
+# Backend files in public/ (should only be in static_server_files/)
+public/api/
+public/.htaccess
+public/note.php
+
+# Root level setup script (should only be in static_server_files/)
+/setup-password.php
