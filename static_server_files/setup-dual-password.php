@@ -5,11 +5,11 @@
 echo "Setting up dual password authentication system...\n\n";
 
 // Set user password
-echo "Enter user password (press enter for '***REMOVED***'): ";
+echo "Enter user password (press enter for 'wlc1m1'): ";
 $userPassword = trim(fgets(STDIN));
 if (empty($userPassword)) {
-    $userPassword = '***REMOVED***';
-    echo "Using default password: ***REMOVED***\n";
+    $userPassword = 'wlc1m1';
+    echo "Using default password: wlc1m1\n";
 }
 
 // Generate random test password
