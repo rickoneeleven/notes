@@ -12,7 +12,8 @@
     "test:simple": "node tests/test-simple-save.js",
     "test:patient": "node tests/test-patient-save.js",
     "test:race": "node tests/test-conflict-race.js",
-    "test:fast-click": "node tests/test-fast-click-away.js"
+    "test:fast-click": "node tests/test-fast-click-away.js",
+    "test:false-conflict": "node tests/test-false-conflict.js"
   },
   "repository": {
     "type": "git",
