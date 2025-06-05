@@ -21,6 +21,16 @@ class TestHelper {
             password = this.getTestPassword();
         }
 
+        // Check if already authenticated
+        const isAuthenticated = await page.evaluate(() => {
+            return window.notesApp && window.notesApp.isAuthenticated;
+        });
+
+        if (isAuthenticated) {
+            console.log('Already authenticated, skipping login...');
+            return;
+        }
+
         console.log('Logging in with test credentials...');
         await page.click('#loginBtn');
         await new Promise(resolve => setTimeout(resolve, 500));

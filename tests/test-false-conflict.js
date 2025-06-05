@@ -71,22 +71,47 @@ async function testFalseConflict() {
         await helper.login(pc2Page);
         
         console.log('PC2: Opening same note...');
-        await new Promise(resolve => setTimeout(resolve, 2000));
         
-        // Find and open the test note by clicking it
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        const opened = await pc2Page.evaluate((noteId) => {
-            const items = document.querySelectorAll('.note-item');
-            for (let item of items) {
-                if (item.dataset.noteId === noteId) {
-                    // Use the app's selectNote function instead of direct clicking
-                    if (window.notesApp && window.notesApp.selectNote) {
-                        window.notesApp.selectNote(noteId);
-                        return true;
-                    }
-                }
+        // Wait for PC2 to see the note via polling
+        console.log('PC2: Waiting for note list to update...');
+        try {
+            await pc2Page.waitForFunction(
+                (targetNoteId) => {
+                    return window.notesApp?.notes?.some(n => n.id === targetNoteId);
+                },
+                { timeout: 15000 },
+                testNoteId
+            );
+            console.log('PC2: Note found in list!');
+        } catch (error) {
+            console.error('PC2: Timeout waiting for note list update:', error.message);
+            
+            // Debug: check what notes PC2 currently has
+            const pc2Notes = await pc2Page.evaluate(() => {
+                return window.notesApp?.notes?.map(n => ({ id: n.id, title: n.title })) || [];
+            });
+            console.log('PC2: Current notes:', pc2Notes);
+            throw error;
+        }
+        
+        // Find and open the test note using proper note object
+        const opened = await pc2Page.evaluate(async (targetNoteId) => {
+            const app = window.notesApp;
+            if (!app || !app.notes) {
+                console.error('[PC2 Eval] notesApp or notesApp.notes not available on PC2.');
+                return false;
             }
-            return false;
+
+            const noteToSelect = app.notes.find(n => n.id === targetNoteId);
+            if (noteToSelect) {
+                console.log(`[PC2 Eval] Found note to select:`, noteToSelect.title);
+                app.selectNote(noteToSelect); // Pass the full note object
+                return true;
+            } else {
+                console.error(`[PC2 Eval] Note with ID ${targetNoteId} not found in app.notes list on PC2.`);
+                console.log('[PC2 Eval] PC2 available notes IDs:', app.notes.map(n => n.id));
+                return false;
+            }
         }, testNoteId);
         
         if (!opened) {
