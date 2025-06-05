@@ -3,6 +3,10 @@ class EventHandler {
         this.app = app;
     }
 
+    setApp(app) {
+        this.app = app;
+    }
+
     bindEvents() {
         this.bindAuthEvents();
         this.bindEditorEvents();

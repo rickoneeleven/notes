@@ -8,6 +8,10 @@ class PollingManager {
         this.lastEditTime = 0;
     }
 
+    setApp(app) {
+        this.app = app;
+    }
+
     trackActivity() {
         this.lastActivity = Date.now();
         if (this.isIdle) {

@@ -2,6 +2,10 @@ class UIManager {
     constructor(app) {
         this.app = app;
     }
+    
+    setApp(app) {
+        this.app = app;
+    }
 
     updateAuthenticationUI() {
         const loginBtn = document.getElementById('loginBtn');

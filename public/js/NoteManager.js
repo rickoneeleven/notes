@@ -3,6 +3,10 @@ class NoteManager {
         this.app = app;
     }
 
+    setApp(app) {
+        this.app = app;
+    }
+
     async loadNotes() {
         try {
             const response = await fetch('/api/notes');

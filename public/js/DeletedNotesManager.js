@@ -3,6 +3,10 @@ class DeletedNotesManager {
         this.app = app;
     }
 
+    setApp(app) {
+        this.app = app;
+    }
+
     async showDeletedNotes() {
         try {
             const response = await fetch('/api/deleted-notes');

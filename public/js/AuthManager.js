@@ -3,6 +3,10 @@ class AuthManager {
         this.app = app;
     }
 
+    setApp(app) {
+        this.app = app;
+    }
+
     checkAuthentication() {
         const authCookie = document.cookie.split('; ').find(row => row.startsWith('auth_session='));
         this.app.isAuthenticated = !!authCookie;

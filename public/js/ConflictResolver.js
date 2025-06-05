@@ -3,6 +3,10 @@ class ConflictResolver {
         this.app = app;
     }
 
+    setApp(app) {
+        this.app = app;
+    }
+
     async checkForConflicts() {
         if (!this.app.currentNote || !this.app.noteLoadedAt) return false;
         

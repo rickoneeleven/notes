@@ -3,6 +3,10 @@ class URLManager {
         this.app = app;
     }
 
+    setApp(app) {
+        this.app = app;
+    }
+
     checkUrlForNote() {
         const path = window.location.pathname;
         const noteIdMatch = path.match(/^\/note\/([a-z0-9-_]+)$/i);
