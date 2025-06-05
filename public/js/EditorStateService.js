@@ -90,11 +90,18 @@ class EditorStateService {
         }
         
         try {
-            console.log(`[EditorStateService.savePreviousNoteContent] Saving content for previous note ID: ${previousNote.id}`);
+            console.log(`[EditorStateService.savePreviousNoteContent] Checking content for previous note ID: ${previousNote.id}`);
             
             // Get current editor content to save to the previous note
             const content = this.editorManager.getContent();
-            console.log(`[EditorStateService.savePreviousNoteContent] Content length: ${content.length}`);
+            
+            // Only save if content has actually changed
+            if (content === previousNote.content) {
+                console.log(`[EditorStateService.savePreviousNoteContent] Content unchanged for note ID: ${previousNote.id}, skipping save`);
+                return;
+            }
+            
+            console.log(`[EditorStateService.savePreviousNoteContent] Content changed for note ID: ${previousNote.id}, saving. Content length: ${content.length}`);
             
             // Call the save function directly with the previous note and current content
             const result = await this.onSaveNote(previousNote, content);
