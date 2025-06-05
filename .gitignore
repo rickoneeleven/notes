@@ -41,7 +41,6 @@ public/assets/main-*.css
 # Development and debug files
 debug-*.js
 simulate-*.js
-test-*.js
 test-*.html
 test.html
 problem_report.txt
@@ -68,3 +67,4 @@ public/note.php
 # Root level setup script (should only be in static_server_files/)
 /setup-password.php
 proposal.md
+problem.md
