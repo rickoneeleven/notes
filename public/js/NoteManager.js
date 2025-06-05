@@ -48,19 +48,55 @@ class NoteManager {
         }
     }
 
-    async saveNote(noteData) {
-        if (!this.app.currentNote) return false;
+    async saveNote(noteData, targetNoteId = null) {
+        const noteId = targetNoteId || this.app.currentNote?.id;
+        if (!noteId) return false;
+        
+        const saveStartTime = Date.now();
+        console.log('[NoteManager.saveNote] SAVE STARTED:', {
+            noteId: noteId,
+            targetNoteId: targetNoteId,
+            contentLength: noteData.content.length,
+            contentPreview: noteData.content.slice(0, 50) + '...',
+            timestamp: saveStartTime
+        });
         
         try {
-            const response = await fetch(`/api/notes/${this.app.currentNote.id}`, {
+            const response = await fetch(`/api/notes/${noteId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(noteData)
             });
             
+            console.log('[NoteManager.saveNote] Response received:', {
+                status: response.status,
+                statusText: response.statusText,
+                ok: response.ok
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
             const updatedNote = await response.json();
-            this.app.currentNote = updatedNote;
-            this.app.noteLoadedAt = new Date(updatedNote.modified);
+            const saveEndTime = Date.now();
+            const oldHash = this.app.noteStateService.getContentHash();
+            const newHash = this.app.noteStateService.hashContent(updatedNote.content);
+            
+            console.log('[NoteManager.saveNote] SAVE COMPLETED:', {
+                noteId: noteId,
+                duration: saveEndTime - saveStartTime,
+                oldHash: oldHash,
+                newHash: newHash,
+                hashChanged: oldHash !== newHash,
+                timestamp: saveEndTime
+            });
+            
+            // Only update current note metadata if we're saving the current note
+            if (!targetNoteId || (this.app.currentNote && this.app.currentNote.id === noteId)) {
+                this.app.noteStateService.updateCurrentNoteMetadata(updatedNote);
+                this.app.noteStateService.contentHash = newHash;
+            }
             
             const index = this.app.notes.findIndex(n => n.id === updatedNote.id);
             if (index !== -1) {
@@ -70,7 +106,10 @@ class NoteManager {
             }
             return true;
         } catch (error) {
-            console.error('Failed to save note:', error);
+            console.error('[NoteManager.saveNote] ERROR MESSAGE:', error.message);
+            console.error('[NoteManager.saveNote] ERROR STACK:', error.stack);
+            console.error('[NoteManager.saveNote] NOTE ID:', noteId);
+            console.error('[NoteManager.saveNote] ERROR TYPE:', error.constructor.name);
             return false;
         }
     }

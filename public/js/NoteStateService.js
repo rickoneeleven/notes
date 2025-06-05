@@ -4,6 +4,7 @@ class NoteStateService {
         this.urlManager = urlManager;
         this.currentNote = null;
         this.noteLoadedAt = null;
+        this.contentHash = null;
         this.notes = [];
         this.onNoteSelected = null;
         this.onNoteCleared = null;
@@ -15,6 +16,7 @@ class NoteStateService {
         const previousNote = this.currentNote;
         this.currentNote = note;
         this.noteLoadedAt = new Date(note.modified);
+        this.contentHash = this.hashContent(note.content);
         
         if (this.onNoteSelected) {
             this.onNoteSelected(note, previousNote);
@@ -32,6 +34,7 @@ class NoteStateService {
         const previousNote = this.currentNote;
         this.currentNote = null;
         this.noteLoadedAt = null;
+        this.contentHash = null;
         
         if (this.onNoteCleared) {
             this.onNoteCleared(previousNote);
@@ -68,7 +71,9 @@ class NoteStateService {
         this.currentNote.title = metadata.title;
         this.currentNote.visibility = metadata.visibility;
         this.currentNote.public_editable = metadata.public_editable;
+        this.currentNote.content = metadata.content;
         this.noteLoadedAt = new Date(metadata.modified);
+        this.contentHash = this.hashContent(metadata.content);
     }
 
     isNoteSelected() {
@@ -85,6 +90,21 @@ class NoteStateService {
 
     isCurrentNote(noteId) {
         return this.currentNote && this.currentNote.id === noteId;
+    }
+
+    getContentHash() {
+        return this.contentHash;
+    }
+
+    hashContent(content) {
+        if (!content) return '';
+        let hash = 0;
+        for (let i = 0; i < content.length; i++) {
+            const char = content.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash;
+        }
+        return hash.toString();
     }
 }
 

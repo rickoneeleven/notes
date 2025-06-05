@@ -6,7 +6,13 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "node tests/test-simple-save.js && node tests/test-patient-save.js",
+    "test:all": "for test in tests/test-*.js; do echo \"Running $test...\"; node \"$test\" || exit 1; done",
+    "test:simple": "node tests/test-simple-save.js",
+    "test:patient": "node tests/test-patient-save.js",
+    "test:race": "node tests/test-conflict-race.js",
+    "test:fast-click": "node tests/test-fast-click-away.js"
   },
   "repository": {
     "type": "git",

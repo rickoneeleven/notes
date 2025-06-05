@@ -53,7 +53,8 @@ index.html.backup
 # Package lock files (we'll use npm ci for consistent installs)
 package-lock.json
 
-# Migration backup directories
+# Backup directories
+backup/
 migration_backup_*/
 
 # Backend files in public/ (should only be in static_server_files/)

@@ -43,6 +43,7 @@ class AppCoordinator {
         this.noteStateService.onNoteSelected = (note, previousNote) => {
             if (previousNote) {
                 this.ui.setTypingIndicator(previousNote.id, false);
+                this.editorStateService.savePreviousNoteContent(previousNote);
                 this.editorStateService.clearTimers();
             }
             
@@ -57,6 +58,7 @@ class AppCoordinator {
         this.noteStateService.onNoteCleared = (previousNote) => {
             if (previousNote) {
                 this.ui.setTypingIndicator(previousNote.id, false);
+                this.editorStateService.savePreviousNoteContent(previousNote);
             }
             this.editorStateService.clearTimers();
             this.pollingManager.stopNotePolling();
@@ -79,6 +81,10 @@ class AppCoordinator {
         
         this.editorStateService.onAutosave = () => {
             this.saveCurrentNote();
+        };
+        
+        this.editorStateService.onSaveNote = (note, content) => {
+            return this.noteCRUDService.saveSpecificNote(note, content);
         };
         
         this.editorStateService.onTyping = (noteId, isTyping) => {

@@ -44,6 +44,27 @@ class NoteCRUDService {
         return success;
     }
 
+    async saveSpecificNote(note, content) {
+        if (!note) {
+            console.warn('[NoteCRUDService.saveSpecificNote] No note provided.');
+            return false;
+        }
+        
+        console.log(`[NoteCRUDService.saveSpecificNote] Saving content to note ID: ${note.id}`);
+        
+        const noteData = { content };
+        
+        // Save directly to specific note ID without modifying current note state
+        const success = await this.noteManager.saveNote(noteData, note.id);
+        if (success) {
+            console.log(`[NoteCRUDService.saveSpecificNote] Note ID: ${note.id} saved successfully.`);
+        } else {
+            console.error(`[NoteCRUDService.saveSpecificNote] Failed to save note ID: ${note.id}.`);
+        }
+        
+        return success;
+    }
+
     async deleteCurrentNote() {
         const currentNote = this.noteStateService.getCurrentNote();
         if (!currentNote || !this.authManager.isAuthenticated) {

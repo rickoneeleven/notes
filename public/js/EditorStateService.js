@@ -75,6 +75,35 @@ class EditorStateService {
         clearTimeout(this.typingTimer);
     }
 
+    flushPendingAutosave() {
+        if (this.autosaveTimer && this.onAutosave) {
+            clearTimeout(this.autosaveTimer);
+            this.autosaveTimer = null;
+            this.onAutosave();
+        }
+    }
+
+    async savePreviousNoteContent(previousNote) {
+        if (!previousNote || !this.onSaveNote) {
+            console.log('[EditorStateService.savePreviousNoteContent] Skipping - no previous note or no save callback');
+            return;
+        }
+        
+        try {
+            console.log(`[EditorStateService.savePreviousNoteContent] Saving content for previous note ID: ${previousNote.id}`);
+            
+            // Get current editor content to save to the previous note
+            const content = this.editorManager.getContent();
+            console.log(`[EditorStateService.savePreviousNoteContent] Content length: ${content.length}`);
+            
+            // Call the save function directly with the previous note and current content
+            const result = await this.onSaveNote(previousNote, content);
+            console.log(`[EditorStateService.savePreviousNoteContent] Save result: ${result}`);
+        } catch (error) {
+            console.error('[EditorStateService.savePreviousNoteContent] Error saving previous note:', error);
+        }
+    }
+
     getContent() {
         return this.editorManager.getContent();
     }

@@ -3,19 +3,46 @@ class ConflictResolver {
         this.app = app;
     }
 
+    hashContent(content) {
+        if (!content) return '';
+        let hash = 0;
+        for (let i = 0; i < content.length; i++) {
+            const char = content.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash;
+        }
+        return hash.toString();
+    }
+
     setApp(app) {
         this.app = app;
     }
 
     async checkForConflicts() {
-        if (!this.app.currentNote || !this.app.noteLoadedAt) return false;
+        if (!this.app.currentNote || !this.app.noteStateService.getContentHash()) return false;
         
         try {
             const response = await fetch(`/api/notes/${this.app.currentNote.id}`);
             const latestNote = await response.json();
-            const latestModified = new Date(latestNote.modified);
+            const serverContentHash = this.hashContent(latestNote.content);
+            const localContentHash = this.app.noteStateService.getContentHash();
+            const currentEditorContent = this.app.editorManager.getContent();
+            const currentEditorHash = this.hashContent(currentEditorContent);
             
-            if (latestModified > this.app.noteLoadedAt) {
+            console.log('[ConflictResolver.checkForConflicts] DETAILED DEBUG:');
+            console.log('  - Note ID:', this.app.currentNote.id);
+            console.log('  - Server content length:', latestNote.content.length);
+            console.log('  - Server content hash:', serverContentHash);
+            console.log('  - Local stored hash:', localContentHash);
+            console.log('  - Current editor content length:', currentEditorContent.length);
+            console.log('  - Current editor hash:', currentEditorHash);
+            console.log('  - Server content preview:', latestNote.content.slice(0, 100) + '...');
+            console.log('  - Editor content preview:', currentEditorContent.slice(0, 100) + '...');
+            
+            if (serverContentHash !== localContentHash) {
+                console.log('[ConflictResolver.checkForConflicts] HASH MISMATCH DETECTED - Investigating...');
+                console.log('  - Does server content match editor content?', latestNote.content === currentEditorContent);
+                console.log('  - Does server hash match editor hash?', serverContentHash === currentEditorHash);
                 return this.handleConflict(latestNote);
             }
             return false;
@@ -29,15 +56,13 @@ class ConflictResolver {
         const currentContent = this.app.editorManager.getContent();
         
         if (latestNote.content === currentContent) {
-            this.app.currentNote = latestNote;
-            this.app.noteLoadedAt = new Date(latestNote.modified);
+            this.app.noteStateService.updateCurrentNoteMetadata(latestNote);
             return false;
         }
         
-        // Auto-sync if user hasn't edited recently (within last 10 seconds)
         if (!this.app.pollingManager.hasRecentEdits()) {
             console.log('Auto-syncing remote changes (no recent local edits)');
-            this.app.selectNote(latestNote);
+            this.app.noteStateService.selectNote(latestNote);
             return false;
         }
         
@@ -50,21 +75,22 @@ class ConflictResolver {
         );
         
         if (!userChoice) {
-            this.app.selectNote(latestNote);
+            this.app.noteStateService.selectNote(latestNote);
         }
         
         return userChoice;
     }
 
     async checkForNoteUpdates() {
-        if (!this.app.currentNote || !this.app.noteLoadedAt) return;
+        if (!this.app.currentNote || !this.app.noteStateService.getContentHash()) return;
         
         try {
             const response = await fetch(`/api/notes/${this.app.currentNote.id}`);
             const latestNote = await response.json();
-            const latestModified = new Date(latestNote.modified);
+            const serverContentHash = this.hashContent(latestNote.content);
+            const localContentHash = this.app.noteStateService.getContentHash();
             
-            if (latestModified > this.app.noteLoadedAt) {
+            if (serverContentHash !== localContentHash) {
                 this.handleConflict(latestNote);
             }
         } catch (error) {
