@@ -50,6 +50,9 @@ possible_solution.md
 *.backup
 index.html.backup
 
+# Test authentication
+tests/test-password.txt
+
 # Package lock files (we'll use npm ci for consistent installs)
 package-lock.json
 

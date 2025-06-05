@@ -35,6 +35,10 @@ function isAuthenticated() {
     return isset($_SESSION['authenticated']) && $_SESSION['authenticated'] === true;
 }
 
+function isTestSession() {
+    return isset($_SESSION['is_test']) && $_SESSION['is_test'] === true;
+}
+
 function generateId() {
     return uniqid('note_', true);
 }
@@ -74,6 +78,14 @@ function getNote($id, $includePrivate = false) {
 function saveNote($note) {
     $filepath = NOTES_DIR . $note['id'] . '.json';
     $note['modified'] = date('c');
+    
+    // Mark test notes ONLY if created during a verified test session
+    if (isTestSession() && $_SESSION['is_test'] === true && !isset($note['is_test'])) {
+        $note['is_test'] = true;
+    } elseif (!isTestSession()) {
+        // Ensure production notes NEVER get test flag
+        unset($note['is_test']);
+    }
     
     cleanupOldDeletedNotes();
     
@@ -204,10 +216,30 @@ switch ($route) {
             $input = json_decode(file_get_contents('php://input'), true);
             $password = $input['password'] ?? '';
             
-            if (password_verify($password, $config['password_hash'])) {
+            // Check for dual password system
+            $isValidPassword = false;
+            $isTestPassword = false;
+            
+            if (isset($config['auth'])) {
+                // New dual password system
+                if (password_verify($password, $config['auth']['user_password_hash'])) {
+                    $isValidPassword = true;
+                    $isTestPassword = false; // Explicitly set to false for user password
+                } elseif (password_verify($password, $config['auth']['test_password_hash'])) {
+                    $isValidPassword = true;
+                    $isTestPassword = true;
+                }
+            } else {
+                // Fallback to old single password system
+                $isValidPassword = password_verify($password, $config['password_hash']);
+                $isTestPassword = false; // Explicitly set to false for old system
+            }
+            
+            if ($isValidPassword) {
                 $_SESSION['authenticated'] = true;
+                $_SESSION['is_test'] = $isTestPassword;
                 setcookie('auth_session', session_id(), time() + (86400 * $config['session_lifetime_days']), '/');
-                echo json_encode(['success' => true]);
+                echo json_encode(['success' => true, 'is_test' => $isTestPassword]);
             } else {
                 http_response_code(401);
                 echo json_encode(['error' => 'Invalid password']);
@@ -342,6 +374,29 @@ switch ($route) {
             } else {
                 http_response_code(403);
                 echo json_encode(['error' => 'Forbidden']);
+            }
+        } elseif ($route === 'test-cleanup') {
+            if ($method === 'POST' && isAuthenticated() && isTestSession()) {
+                $deletedCount = 0;
+                $files = glob(NOTES_DIR . '*.json');
+                
+                foreach ($files as $file) {
+                    $note = json_decode(file_get_contents($file), true);
+                    if (isset($note['is_test']) && $note['is_test'] === true) {
+                        // Delete test note
+                        moveToDeleted($note['id']);
+                        $deletedCount++;
+                    }
+                }
+                
+                echo json_encode([
+                    'success' => true,
+                    'deleted_count' => $deletedCount,
+                    'message' => "Cleaned up $deletedCount test notes"
+                ]);
+            } else {
+                http_response_code(403);
+                echo json_encode(['error' => 'Forbidden - test cleanup requires test session']);
             }
         } else {
             http_response_code(404);
