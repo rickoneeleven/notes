@@ -1,6 +1,7 @@
 import { EditorState, Compartment } from '@codemirror/state';
 import { EditorView, lineNumbers, keymap } from '@codemirror/view';
 import { defaultKeymap, history, historyKeymap, insertTab, indentLess } from '@codemirror/commands';
+import { indentUnit } from '@codemirror/language';
 import { oneDark } from '@codemirror/theme-one-dark';
 
 export default class EditorManager {
@@ -38,11 +39,15 @@ export default class EditorManager {
                 lineNumbers(),
                 history(),
                 EditorView.lineWrapping,
+                indentUnit.of("    "),
                 keymap.of([
                     {
                         key: 'Tab',
                         preventDefault: true,
-                        run: insertTab,
+                        run: (view) => {
+                            view.dispatch(view.state.replaceSelection("\t"));
+                            return true;
+                        },
                     },
                     {
                         key: 'Shift-Tab',
