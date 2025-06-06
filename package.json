@@ -8,7 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "node tests/test-simple-save.js && node tests/test-patient-save.js",
-    "test:all": "for test in tests/test-*.js; do if [[ \"$test\" != \"tests/test-helper.js\" ]]; then echo \"Running $test...\"; node \"$test\" || exit 1; fi; done",
+    "test:all": "for test in tests/test-*.js; do case $test in tests/test-helper.js) continue;; *) echo \"Running $test...\"; node \"$test\" || exit 1;; esac; done",
     "test:security": "node tests/test-security.js",
     "test:simple": "node tests/test-simple-save.js",
     "test:patient": "node tests/test-patient-save.js",
