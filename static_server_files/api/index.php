@@ -256,7 +256,7 @@ switch ($route) {
         break;
         
     case 'notes':
-        if ($method === 'GET') {
+        if ($method === 'GET' && isAuthenticated()) {
             $notes = getNotes(isAuthenticated());
             echo json_encode($notes);
         } elseif ($method === 'POST' && isAuthenticated()) {

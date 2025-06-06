@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 
 /**
- * Test: False Conflict Detection Between Two Sessions
+ * Test: Verify No False Conflicts Between Two Sessions
+ * This test ensures that two users editing the same note don't get false conflict warnings
  */
 
 const puppeteer = require('puppeteer');
@@ -144,13 +145,13 @@ async function testFalseConflict() {
             await new Promise(resolve => setTimeout(resolve, 3000));
             
             if (conflictDetected) {
-                console.log(`🎯 FALSE CONFLICT REPRODUCED after ${i} edits!`);
-                return true;
+                console.log(`❌ FALSE CONFLICT DETECTED after ${i} edits!`);
+                return false; // Test fails if false conflict is detected
             }
         }
         
-        console.log('❌ No false conflicts detected');
-        return false;
+        console.log('✅ No false conflicts detected - test passed!');
+        return true; // Test passes if no false conflicts
         
     } catch (error) {
         console.error('Test failed:', error.message);

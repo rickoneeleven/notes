@@ -44,7 +44,8 @@ class AuthManager {
             this.app.isAuthenticated = false;
             this.app.pollingManager.stopAllPolling();
             this.app.ui.updateAuthenticationUI();
-            this.app.noteManager.loadNotes();
+            this.app.notes = [];
+            this.app.noteManager.renderNotesList();
         } catch (error) {
             console.error('Logout failed:', error);
         }

@@ -105,7 +105,9 @@ class AppCoordinator {
         });
         
         this.auth.checkAuthentication();
-        this.noteManager.loadNotes();
+        if (this.isAuthenticated) {
+            this.noteManager.loadNotes();
+        }
         this.eventHandler.bindEvents();
         this.urlManager.checkUrlForNote();
         this.pollingManager.startNotesListPolling();

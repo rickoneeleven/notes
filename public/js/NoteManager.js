@@ -10,10 +10,20 @@ class NoteManager {
     async loadNotes() {
         try {
             const response = await fetch('/api/notes');
-            this.app.notes = await response.json();
-            this.renderNotesList();
+            if (response.ok) {
+                this.app.notes = await response.json();
+                this.renderNotesList();
+            } else if (response.status === 403) {
+                // Not authenticated - clear notes list
+                this.app.notes = [];
+                this.renderNotesList();
+            } else {
+                throw new Error(`HTTP ${response.status}`);
+            }
         } catch (error) {
             console.error('Failed to load notes:', error);
+            this.app.notes = [];
+            this.renderNotesList();
         }
     }
 

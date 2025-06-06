@@ -7,9 +7,10 @@ session_start();
  * Handles both crawler-friendly note URLs and asset serving
  */
 
+define('NOTES_DIR', '../notes/');
+
 // Check if this is an asset request
 if (isset($_GET['id']) && isset($_GET['asset'])) {
-    define('NOTES_DIR', './notes/');
     
     $noteId = $_GET['id'];
     $assetName = $_GET['asset'];
@@ -30,11 +31,7 @@ if (isset($_GET['id']) && isset($_GET['asset'])) {
     $note = json_decode(file_get_contents($noteFile), true);
     $isAuthenticated = isset($_SESSION['authenticated']) && $_SESSION['authenticated'] === true;
     
-    // Check access permissions
-    if ($note['visibility'] === 'private' && !$isAuthenticated) {
-        http_response_code(403);
-        exit('Access denied');
-    }
+    // Having the direct asset URL serves as permission
     
     // Validate asset filename
     $assetName = basename($assetName);
@@ -65,6 +62,13 @@ $path = $_SERVER['REQUEST_URI'];
 $matches = [];
 if (preg_match('/\/note\/([^\/\?]+)/', $path, $matches)) {
     $noteId = $matches[1];
+    
+    // Validate note ID format
+    if (!preg_match('/^note_[a-f0-9.]+$/', $noteId)) {
+        http_response_code(404);
+        echo "Note not found";
+        exit;
+    }
 } else {
     http_response_code(404);
     echo "Note not found";
@@ -127,31 +131,20 @@ function isCrawler() {
 
 // Fetch note data for both crawlers and browsers
 try {
-    // Use the existing API to fetch note content
-    $apiUrl = 'https://notes.pinescore.com/api/notes/' . urlencode($noteId);
+    // Direct file access - having the URL serves as permission
+    $noteFile = NOTES_DIR . $noteId . '.json';
     
-    // Create context for the API request
-    $context = stream_context_create([
-        'http' => [
-            'method' => 'GET',
-            'header' => 'Content-Type: application/json',
-            'timeout' => 10
-        ]
-    ]);
-    
-    $response = @file_get_contents($apiUrl, false, $context);
-    
-    if ($response === false) {
+    if (!file_exists($noteFile)) {
         http_response_code(404);
-        echo "Note not found or not accessible";
+        echo "Note not found";
         exit;
     }
     
-    $note = json_decode($response, true);
+    $note = json_decode(file_get_contents($noteFile), true);
     
     if (!$note) {
         http_response_code(404);
-        echo "Note not found or not accessible";
+        echo "Note not found";
         exit;
     }
     
@@ -168,7 +161,7 @@ try {
         if (!empty($note['assets'])) {
             echo "\n\n---\nAssets:\n";
             foreach ($note['assets'] as $asset) {
-                echo "- https://notes.pinescore.com/assets/" . urlencode($noteId) . "/" . urlencode($asset) . "\n";
+                echo "- https://notes.pinescore.com/note.php?id=" . urlencode($noteId) . "&asset=" . urlencode($asset) . "\n";
             }
         }
     } else {
@@ -266,7 +259,7 @@ try {
         <h2>Assets</h2>
         <ul>';
             foreach ($note['assets'] as $asset) {
-                $assetUrl = 'https://notes.pinescore.com/assets/' . urlencode($noteId) . '/' . urlencode($asset);
+                $assetUrl = 'https://notes.pinescore.com/note.php?id=' . urlencode($noteId) . '&asset=' . urlencode($asset);
                 echo '
             <li><a href="' . htmlspecialchars($assetUrl) . '" target="_blank">' . htmlspecialchars($asset) . '</a></li>';
             }
