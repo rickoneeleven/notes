@@ -1,6 +1,6 @@
 import { EditorState, Compartment } from '@codemirror/state';
 import { EditorView, lineNumbers, keymap } from '@codemirror/view';
-import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
+import { defaultKeymap, history, historyKeymap, insertTab, indentLess } from '@codemirror/commands';
 import { oneDark } from '@codemirror/theme-one-dark';
 
 export default class EditorManager {
@@ -38,7 +38,20 @@ export default class EditorManager {
                 lineNumbers(),
                 history(),
                 EditorView.lineWrapping,
-                keymap.of([...defaultKeymap, ...historyKeymap]),
+                keymap.of([
+                    {
+                        key: 'Tab',
+                        preventDefault: true,
+                        run: insertTab,
+                    },
+                    {
+                        key: 'Shift-Tab',
+                        preventDefault: true,
+                        run: indentLess,
+                    },
+                    ...defaultKeymap, 
+                    ...historyKeymap
+                ]),
                 oneDark,
                 this.readOnlyCompartment.of(EditorState.readOnly.of(options.readOnly || false)),
                 EditorView.updateListener.of(update => {
