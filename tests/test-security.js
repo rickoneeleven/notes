@@ -159,7 +159,7 @@ async function testSecurity() {
         page = await browser.newPage();
         helper.setupConsoleLogging(page);
         
-        await page.goto('http://localhost:3001', { waitUntil: 'networkidle0' });
+        await page.goto('http://localhost:3000', { waitUntil: 'networkidle0' });
         await helper.login(page);
         
         // Create a private note

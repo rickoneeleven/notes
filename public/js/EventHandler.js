@@ -35,10 +35,14 @@ class EventHandler {
     bindEditorEvents() {
         console.log('[EventHandler] bindEditorEvents called - editor events now handled by EditorManager');
         
-        document.getElementById('noteTitle').addEventListener('input', () => {
+        document.getElementById('noteTitle').addEventListener('input', async () => {
             this.app.pollingManager.trackEdit();
             this.app.handleTyping();
-            this.app.scheduleAutosave();
+            await this.app.saveCurrentNote();
+        });
+        
+        document.getElementById('noteTitle').addEventListener('blur', async () => {
+            await this.app.saveCurrentNote();
         });
     }
 
