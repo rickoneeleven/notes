@@ -105,11 +105,10 @@ class AppCoordinator {
         });
         
         this.auth.checkAuthentication();
-        if (this.isAuthenticated) {
-            this.noteManager.loadNotes();
-        }
+        this.noteManager.loadNotes().then(() => {
+            this.urlManager.checkUrlForNote();
+        });
         this.eventHandler.bindEvents();
-        this.urlManager.checkUrlForNote();
         this.pollingManager.startNotesListPolling();
         console.log('[AppCoordinator.init] Initialization complete.');
     }
@@ -176,7 +175,8 @@ class AppCoordinator {
     
     async checkForNotesListUpdates() {
         try {
-            const response = await fetch('/api/notes');
+            const endpoint = this.isAuthenticated ? '/api/notes' : '/api/public-notes';
+            const response = await fetch(endpoint);
             if (!response.ok) {
                 console.error(`[AppCoordinator.checkForNotesListUpdates] API error: ${response.status}`);
                 return;

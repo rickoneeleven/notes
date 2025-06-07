@@ -9,7 +9,8 @@ class NoteManager {
 
     async loadNotes() {
         try {
-            const response = await fetch('/api/notes');
+            const endpoint = this.app.isAuthenticated ? '/api/notes' : '/api/public-notes';
+            const response = await fetch(endpoint);
             if (response.ok) {
                 this.app.notes = await response.json();
                 this.renderNotesList();

@@ -211,6 +211,16 @@ function restoreNote($noteId) {
 }
 
 switch ($route) {
+    case 'public-notes':
+        if ($method === 'GET') {
+            $notes = getNotes(false);
+            echo json_encode($notes);
+        } else {
+            http_response_code(405);
+            echo json_encode(['error' => 'Method not allowed']);
+        }
+        break;
+        
     case 'auth':
         if ($method === 'POST') {
             $input = json_decode(file_get_contents('php://input'), true);

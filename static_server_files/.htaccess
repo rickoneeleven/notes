@@ -15,6 +15,11 @@ RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^note/(note_[a-f0-9.]+)/?$ note.php [QSA,L]
 
+# Route edit URLs to index.html (for editor access)
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^edit/(note_[a-f0-9.]+)/?$ index.html [QSA,L]
+
 # Route asset URLs to note.php
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d

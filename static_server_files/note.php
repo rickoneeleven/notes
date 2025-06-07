@@ -129,9 +129,35 @@ try {
         a:hover {
             text-decoration: underline;
         }
+        .edit-button {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background-color: #007acc;
+            color: white;
+            padding: 8px 12px;
+            border: none;
+            border-radius: 4px;
+            text-decoration: none;
+            font-family: system-ui, -apple-system, sans-serif;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        .edit-button:hover {
+            background-color: #005a9e;
+            text-decoration: none;
+        }
     </style>
 </head>
-<body>' . $title . '
+<body>';
+
+    // Add edit button for public_editable notes
+    if ($note['visibility'] === 'public' && $note['public_editable']) {
+        $editUrl = 'https://notes.pinescore.com/edit/' . urlencode($noteId);
+        echo '<a href="' . htmlspecialchars($editUrl) . '" class="edit-button">Edit this note</a>';
+    }
+    
+    echo $title . '
 
 ' . $content;
         
