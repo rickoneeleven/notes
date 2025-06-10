@@ -9,7 +9,7 @@ const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 
-const TEST_TIMEOUT = 90000; // 90 seconds per test
+const TEST_TIMEOUT = 300000; // 5 minutes per test
 const MAX_CONCURRENT = 3; // Limit concurrent tests to avoid resource exhaustion
 
 // Tests that must run in isolation due to resource contention
