@@ -75,11 +75,11 @@ class EditorStateService {
         clearTimeout(this.typingTimer);
     }
 
-    flushPendingAutosave() {
+    async flushPendingAutosave() {
         if (this.autosaveTimer && this.onAutosave) {
             clearTimeout(this.autosaveTimer);
             this.autosaveTimer = null;
-            this.onAutosave();
+            await this.onAutosave();
         }
     }
 

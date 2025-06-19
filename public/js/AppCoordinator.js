@@ -215,6 +215,42 @@ class AppCoordinator {
     checkForNoteUpdates() {
         this.conflictResolver.checkForNoteUpdates();
     }
+    
+    async forceSyncCurrentNote() {
+        if (!this.currentNote) {
+            console.log('[AppCoordinator.forceSyncCurrentNote] No current note to sync');
+            return;
+        }
+        
+        this.editorManager.setReadOnly(true);
+        
+        try {
+            console.log(`[AppCoordinator.forceSyncCurrentNote] Syncing note ${this.currentNote.id}`);
+            
+            const response = await fetch(`/api/notes/${this.currentNote.id}`);
+            if (!response.ok) {
+                console.error(`[AppCoordinator.forceSyncCurrentNote] API error: ${response.status}`);
+                return;
+            }
+            
+            const latestNote = await response.json();
+            const serverContentHash = this.conflictResolver.hashContent(latestNote.content);
+            const localContentHash = this.noteStateService.getContentHash();
+            
+            if (!localContentHash || serverContentHash !== localContentHash) {
+                console.log('[AppCoordinator.forceSyncCurrentNote] Remote changes detected or no local hash, handling conflict');
+                this.conflictResolver.handleConflict(latestNote);
+            } else {
+                console.log('[AppCoordinator.forceSyncCurrentNote] No remote changes detected');
+            }
+        } catch (error) {
+            console.error('[AppCoordinator.forceSyncCurrentNote] Failed to sync:', error);
+        } finally {
+            const currentNote = this.noteStateService.getCurrentNote();
+            const shouldBeReadOnly = this.visibilityService.shouldEditorBeReadOnly(currentNote, this.isAuthenticated);
+            this.editorManager.setReadOnly(shouldBeReadOnly);
+        }
+    }
 }
 
 export default AppCoordinator;

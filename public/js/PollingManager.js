@@ -15,7 +15,7 @@ class PollingManager {
     trackActivity() {
         this.lastActivity = Date.now();
         if (this.isIdle) {
-            this.setIdleState(false);
+            this.wakeUp();
         }
     }
 
@@ -32,6 +32,18 @@ class PollingManager {
         this.isIdle = idle;
         this.app.ui.setIdleState(idle);
     }
+    
+    async goToSleep() {
+        console.log('[PollingManager.goToSleep] Entering idle state');
+        await this.app.editorStateService.flushPendingAutosave();
+        this.setIdleState(true);
+    }
+    
+    async wakeUp() {
+        console.log('[PollingManager.wakeUp] Waking up from idle state');
+        this.setIdleState(false);
+        await this.app.forceSyncCurrentNote();
+    }
 
     startNotePolling() {
         this.stopNotePolling();
@@ -39,11 +51,9 @@ class PollingManager {
         if (!this.app.currentNote) return;
         
         this.pollTimer = setInterval(() => {
-            this.trackActivity();
-            
-            if (Date.now() - this.lastActivity > 3600000) {
+            if (Date.now() - this.lastActivity > 300000) {
                 if (!this.isIdle) {
-                    this.setIdleState(true);
+                    this.goToSleep();
                 }
                 return;
             }
@@ -63,11 +73,9 @@ class PollingManager {
         this.stopNotesListPolling();
         
         this.notesListPollTimer = setInterval(() => {
-            this.trackActivity();
-            
-            if (Date.now() - this.lastActivity > 3600000) {
+            if (Date.now() - this.lastActivity > 300000) {
                 if (!this.isIdle) {
-                    this.setIdleState(true);
+                    this.goToSleep();
                 }
                 return;
             }

@@ -69,14 +69,23 @@ class UIManager {
 
     setIdleState(idle) {
         const editorElement = document.getElementById('editor');
+        const sleepyEyes = document.getElementById('sleepyEyes');
         
         if (idle) {
             editorElement.style.opacity = '0.5';
             if (this.app.editorManager && this.app.editorManager.view) {
                 this.app.editorManager.view.contentDOM.blur();
             }
+            sleepyEyes.style.display = 'block';
+            setTimeout(() => {
+                sleepyEyes.classList.add('show');
+            }, 10);
         } else {
             editorElement.style.opacity = '1';
+            sleepyEyes.classList.remove('show');
+            setTimeout(() => {
+                sleepyEyes.style.display = 'none';
+            }, 500);
         }
         
         console.log('[UIManager] setIdleState:', idle);
