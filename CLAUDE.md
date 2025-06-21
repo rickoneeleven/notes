@@ -28,140 +28,204 @@ refresh - a lot has changed in the project recently, crawl the project and rewri
 
 
 ====-
-## Project Specific Intructions Below
+## Project Specific Instructions Below
 
 ## Project Overview
-Lightweight web-based notes application (Notepad++ inspired)
-- **Host**: notes.pinescore.com (Virtualmin server)
+Production-grade web-based notes application with enterprise-level features
+- **Host**: notes.pinescore.com (Virtualmin Linux server)
 - **Live Root**: `/home/loopnova/domains/notes.pinescore.com/public_html/dist/`
+- **Architecture**: Dependency-injected ES6 modules with service-oriented design
 
 ## Environment
-- **Server**: Linux-based hosting with Virtualmin
+- **Server**: Linux-based hosting with Virtualmin, Apache web server
 - **PHP Config**: `../etc/php.ini` (relative to `public_html/dist/`)
 - **Server Logs**: `../logs/` (access_log, error_log, php_log)
+- **File Limits**: 50MB max asset upload, configurable session lifetime
 
 ## Technology Stack
-- **Frontend**: ES6 modules, Vite 6.3.5, CodeMirror 6.x, CSS
-- **Backend**: PHP (no framework)
-- **Storage**: JSON files per note (no database)
-- **Auth**: Dual password system (user & test)
-- **Testing**: Puppeteer 24.x, Node.js parallel test runner
-- **Dependencies**: Minimal - only CodeMirror for editor, Puppeteer for testing
+- **Frontend**: Vite 6.3.5, CodeMirror 6.x, Pure ES6 modules (~2,454 lines across 18 modules)
+- **Backend**: PHP (no frameworks), JSON file storage, dual authentication system
+- **Editor**: CodeMirror 6 with extensions (@codemirror/view, @codemirror/commands, @codemirror/language, @codemirror/state, @codemirror/theme-one-dark)
+- **Testing**: Puppeteer 24.10.0, Node.js parallel runner, 15+ comprehensive tests
+- **Build**: Vite with production API proxy, automatic asset copying
 
 ## Directory Structure
 ```
-public_html/                     # Project root on server
-├── notes/                       # Runtime data storage (JSON note files, assets per note)
-│   ├── <note_id>.json           # Individual note file
-│   └── <note_id>/assets/        # Assets for a specific note
-│       └── <asset_filename>
-├── deleted/                     # Storage for deleted notes (JSON files & their assets)
-│   ├── <note_id>.json
-│   └── <note_id>/assets/
-├── public/                      # Frontend source directory (Vite's `root`)
-│   ├── index.html               # Main application SPA shell
-│   ├── css/style.css            # Styling
-│   └── js/                      # Frontend ES6 modules
-│       ├── app.js                 # Entry point, initializes AppCoordinator
-│       ├── AppCoordinator.js      # Main application coordinator
-│       ├── AssetManager.js        # Handles asset uploads, display, deletion, renaming
-│       ├── AuthManager.js         # Authentication logic, login/logout
-│       ├── ClipboardManager.js    # Copying direct links to clipboard
-│       ├── ConflictResolver.js    # Detects and helps resolve concurrent edit conflicts
-│       ├── DeletedNotesManager.js # Manages deleted notes view and restoration
-│       ├── EditorManager.js       # CodeMirror editor instance management
-│       ├── EditorStateService.js  # Manages editor state (content, autosave, typing)
-│       ├── EventHandler.js        # Centralizes DOM event binding
-│       ├── NoteCRUDService.js     # Handles CRUD operations for notes via API
-│       ├── NoteManager.js         # Manages local note list, rendering, interaction (legacy, parts being refactored to services)
-│       ├── NoteStateService.js    # Manages current note state, selection, hashing
-│       ├── PollingManager.js      # Manages periodic updates (notes list, current note) & activity
-│       ├── UIManager.js           # UI state changes, modal management, visual feedback
-│       ├── URLManager.js          # Handles URL-based note loading
-│       ├── VisibilityService.js   # Determines editability based on auth & note settings
-│       └── dependencies.js        # Centralized creation of module dependencies
-├── static_server_files/         # Backend PHP files & static assets (Vite's `publicDir`)
+public_html/                     # Project root
+├── notes/                       # Runtime data storage (JSON files, not touched by builds)
+│   ├── <note_id>.json           # Individual note files
+│   ├── <note_id>/assets/        # Per-note asset storage
+│   ├── folders.json             # Folder organization structure
+│   └── deleted/                 # Soft delete storage with restoration
+├── backup/                      # Manual backup storage
+├── public/                      # Frontend source (Vite root)
+│   ├── index.html               # SPA shell
+│   ├── css/style.css            # Pure CSS styling
+│   └── js/                      # ES6 modules (18 files, dependency-injected)
+│       ├── app.js               # Entry point, initializes AppCoordinator
+│       ├── AppCoordinator.js    # Main coordinator (287 lines)
+│       ├── NoteManager.js       # Legacy note management (408 lines, being refactored)
+│       ├── *Manager.js          # Business logic managers (Auth, Asset, Editor, UI, etc.)
+│       ├── *Service.js          # Data & state services (CRUD, State, Visibility)
+│       └── dependencies.js      # Centralized dependency injection
+├── static_server_files/         # Backend source (Vite publicDir)
 │   ├── api/
-│   │   ├── index.php            # Main API router/handler (references notes via `../../notes/`)
-│   │   └── assets.php           # Asset management backend functions
-│   ├── config.json              # App configuration (passwords, session, etc. Not in git)
-│   ├── .htaccess                # Apache security and rewrite rules
-│   ├── note.php                 # Server-side rendering for direct note URLs (SEO, crawlers)
-│   ├── setup-password.php       # CLI script for single password setup (legacy)
-│   └── setup-dual-password.php  # CLI script for user + test password setup
-├── dist/                        # Production build output (Vite's `build.outDir`, Virtualmin document root)
-│   ├── index.html               # Built frontend application
-│   ├── assets/                  # Compiled JS/CSS assets
-│   ├── api/                     # Copied backend API (from static_server_files/)
-│   ├── config.json              # Copied app configuration
-│   ├── .htaccess                # Copied security configuration
-│   ├── note.php                 # Copied note renderer
-│   └── setup*.php               # Copied setup scripts (though not typically run from dist)
-├── tests/                       # Test scripts and related files
-│   ├── test-*.js                # Individual test files (run with Node.js)
-│   ├── README.md                # Test suite documentation
-│   └── test-password.txt        # Stores auto-generated test password (not in git)
-├── .gitignore                   # Specifies intentionally untracked files by Git
-├── package.json                 # NPM package configuration, scripts, dependencies
-├── vite.config.js               # Vite build and dev server configuration
-└── README.md                    # Project README
+│   │   ├── index.php            # Main API router with comprehensive endpoints
+│   │   ├── folders.php          # Folder organization backend
+│   │   └── assets.php           # Asset management backend
+│   ├── config.json              # App configuration (dual passwords, sessions)
+│   ├── .htaccess                # Apache security rules
+│   ├── note.php                 # SEO-friendly server-side rendering
+│   └── setup-dual-password.php  # Password configuration script
+├── dist/                        # Production build (Virtualmin document root)
+│   ├── index.html               # Built SPA
+│   ├── assets/                  # Vite-compiled assets
+│   └── [api/, config.json, etc.] # Copied backend files
+├── tests/                       # Comprehensive test suite (15+ tests)
+│   ├── test-*.js                # Individual test files (Puppeteer-based)
+│   ├── test-helper.js           # Shared test utilities
+│   └── test-password.txt        # Auto-generated test authentication
+├── package.json                 # Dependencies and scripts
+├── vite.config.js               # Build configuration
+└── CLAUDE.md                    # This file
 ```
 
-## Frontend Architecture
-Modular ES6 coordinated by `AppCoordinator.js`:
-- **Managers**: UI, Auth, Asset, Polling, Editor
-- **Services**: NoteState, EditorState, NoteCRUD, Visibility
-- **dependencies.js**: Dependency injection
-- **EventHandler.js**: DOM event binding
+## Frontend Architecture (18 ES6 Modules)
+**Pattern**: Coordinated dependency injection with service-oriented design
+
+**Application Flow**: app.js → dependencies.js → AppCoordinator.js → Managers & Services
+
+**Managers** (Business Logic):
+- `AuthManager.js` - Dual password authentication
+- `AssetManager.js` - File upload/management per note
+- `EditorManager.js` - CodeMirror 6 instance control
+- `UIManager.js` - Modal management, idle state visual feedback
+- `PollingManager.js` - Activity tracking, idle timeout (configurable)
+- `EventHandler.js` - Centralized DOM event binding
+
+**Services** (Data & State):
+- `NoteCRUDService.js` - API communication layer
+- `NoteStateService.js` - Current note state management
+- `EditorStateService.js` - Autosave, typing indicators
+- `VisibilityService.js` - Permission-based editability
+
+**Key Features**:
+- Conflict detection with resolution UI
+- Idle state management (configurable timeout, visual feedback)
+- Real-time autosave with race condition handling
+- Folder organization with drag-and-drop
+- Asset management per note
 
 ## API Endpoints
-All paths relative to `/api/`:
-- **Auth**: `POST /auth`, `POST /logout`
-- **Notes**: `GET /notes`, `POST /notes`, `GET /notes/{id}`, `PUT /notes/{id}`, `DELETE /notes/{id}`
-- **Deleted**: `GET /deleted-notes`, `POST /deleted-notes/{id}/restore`
-- **Assets**: `POST /notes/{noteId}/assets`, `PUT /notes/{noteId}/assets/{assetName}`, `DELETE /notes/{noteId}/assets/{assetName}`
-- **Testing**: `POST /test-cleanup`
+**Base**: `/api/` | **Router**: `static_server_files/api/index.php`
 
-## Testing Framework
-- **Test Runner**: Parallel execution with `npm run test:all` (max 3 concurrent)
-- **Individual Tests**: `npm run test:<name>` (simple, patient, race, fast-click, false-conflict, security)
-- **Requirements**: Dev server on localhost:3000, dual password setup
-- **Isolation**: Resource-intensive tests (security, patient-save, fast-click-away) run separately
-- **Coverage**: Save operations, race conditions, security, UI interactions, conflict resolution
-- **Timeout**: 90 seconds per test with automatic cleanup
-- **Password**: Auto-generated test password stored in `tests/test-password.txt`
+**Authentication**:
+- `POST /auth` - Dual password login
+- `POST /logout` - Session termination
 
-## Build System Details
-- **Vite Configuration**: `public/` as root, `static_server_files/` as publicDir
-- **Development Proxy**: API calls proxied to production (notes.pinescore.com)
-- **Cookie Handling**: Domain/Secure flags stripped for local development
-- **Output**: Production build to `dist/` directory
-- **Static Assets**: PHP files and config copied from `static_server_files/`
+**Notes**:
+- `GET /notes` - List all notes with folder organization
+- `POST /notes` - Create new note
+- `GET /notes/{id}` - Retrieve specific note
+- `PUT /notes/{id}` - Update note content/metadata
+- `DELETE /notes/{id}` - Soft delete note
+- `PUT /notes/{id}/move` - Move note to folder
+
+**Folders**:
+- `GET /folders` - List all folders
+- `POST /folders` - Create folder
+- `DELETE /folders/{name}` - Delete folder (moves notes to root)
+
+**Deleted Notes**:
+- `GET /deleted-notes` - List soft-deleted notes
+- `POST /deleted-notes/{id}/restore` - Restore deleted note
+
+**Assets**:
+- `POST /notes/{noteId}/assets` - Upload asset
+- `PUT /notes/{noteId}/assets/{name}` - Rename asset
+- `DELETE /notes/{noteId}/assets/{name}` - Delete asset
+
+**Testing**:
+- `POST /test-cleanup` - Clean test notes
+
+## Testing Framework (15+ Tests)
+**Architecture**: Individual test execution to avoid Claude timeouts
+
+**Test Execution**: `node tests/test-<name>.js` (direct execution, no npm wrapper)
+
+**Available Tests**:
+- **Core**: simple-save, patient-save, conflict-race, fast-click-away
+- **Security**: security (authentication, access control, path traversal)
+- **Features**: folders, note-rename, delete-folder, folder-operations, folder-spaces
+- **Advanced**: idle-state, false-conflict
+
+**Test Categories**:
+- Save operations & autosave validation
+- Race conditions & conflict detection
+- Security (auth, path traversal, malicious input)
+- UI interactions & edge cases
+- Folder management operations
+- Idle state management with configurable timeouts
+
+**Requirements**:
+- Dev server on localhost:3000
+- Dual password setup via `php static_server_files/setup-dual-password.php`
+- Auto-generated test password in `tests/test-password.txt`
+
+**Claude Testing Process**: Run each test individually, report results, provide pass/fail summary
+
+## Build System
+**Tool**: Vite 6.3.5 with production API proxy
+
+**Configuration**:
+- `public/` as root directory
+- `static_server_files/` as publicDir (auto-copied to dist)
+- Development proxy to notes.pinescore.com for API calls
+- Cookie domain/secure flag handling for local development
+
+**Build Process**:
+- Frontend: ES6 modules bundled with tree-shaking
+- Backend: PHP files copied from static_server_files to dist
+- Assets: Vite optimization with cache busting
 
 ## Development Workflow
-**MANDATORY order - never skip steps:**
+**MANDATORY order (never skip steps)**:
 
-1. **Backup**: `cp -rf notes/* backup/`
+1. **Backup**: `cp -rf notes/* backup/` (data safety)
 2. **Dependencies**: `npm install` (if package.json changed)
-3. **Dual Password Setup**: `php static_server_files/setup-dual-password.php` (generates test password)
+3. **Authentication**: `php static_server_files/setup-dual-password.php`
 4. **Dev Server**: `npm run dev` (localhost:3000 with API proxy)
-5. **Test**: `npm run test:all` (parallel execution, ALL must pass)
+5. **Testing**: Individual test execution `node tests/test-<name>.js`
 6. **User Approval**: Confirm before build
-7. **Build**: `npm run build` (only if tests pass)
+7. **Build**: `npm run build` (only after tests pass)
 8. **Cleanup**: `pkill -f "vite"`
 
-**Data Safety**: `notes/` and `deleted/` are outside build directories. Build doesn't touch data.
-
-## Communication Protocol
-1. **Be direct and assertive**: Push back when user going wrong direction
-2. **Challenge when needed**: Point out issues, better alternatives  
-3. **Maximize value**: Provide utility, not validation
+**Critical Notes**:
+- `notes/` directory is never touched by builds (data safety)
+- Dev server proxies to production API, requires both `static_server_files/` and `dist/` updates for backend changes
+- All tests must pass before build
 
 ## Development Helper Commands
-- **Logs**: `tail -f ../logs/{php_log,access_log,error_log}`
-- **Test API**: `curl -X GET http://localhost:3000/api/notes`
-- **Reset Test Data**: `curl -X POST http://localhost:3000/api/test-cleanup`
-- **Kill Dev Server**: `pkill -f "vite"`
-- **Check Dependencies**: `npm outdated`
-- **Setup Passwords**: `php static_server_files/setup-dual-password.php`
-- **Backup Notes**: `cp -rf notes/* backup/`
+**Server Management**:
+- Kill dev server: `pkill -f "vite"`
+- View logs: `tail -f ../logs/{php_log,access_log,error_log}`
+
+**Testing & API**:
+- Test API: `curl -X GET http://localhost:3000/api/notes`
+- Reset test data: `curl -X POST http://localhost:3000/api/test-cleanup`
+- Run specific test: `node tests/test-simple-save.js`
+
+**Maintenance**:
+- Check dependencies: `npm outdated`
+- Setup passwords: `php static_server_files/setup-dual-password.php`
+- Backup notes: `cp -rf notes/* backup/`
+
+## Key Features
+- **Real-time Collaboration**: Conflict detection with resolution UI
+- **Idle State Management**: Configurable timeout (5s for testing), visual feedback
+- **Folder Organization**: Hierarchical structure with move operations
+- **Asset Management**: Per-note file uploads with dedicated storage
+- **Public/Private Notes**: Granular visibility controls
+- **SEO-Friendly**: Server-side rendering for direct note URLs
+- **Security**: Path traversal protection, authentication, input validation
+- **Performance**: Optimized autosave, efficient polling, resource management

@@ -92,8 +92,8 @@ async function testMoveNoteToFolder() {
             throw new Error(`Failed to verify note: ${verifyResponse.status}`);
         }
         
-        if (verifyResponse.data.note.folderName !== folderName) {
-            throw new Error(`Note not in correct folder. Expected: ${folderName}, Got: ${verifyResponse.data.note.folderName}`);
+        if (verifyResponse.data.folderName !== folderName) {
+            throw new Error(`Note not in correct folder. Expected: ${folderName}, Got: ${verifyResponse.data.folderName}`);
         }
         
         console.log('✅ Note successfully moved to folder');
@@ -125,8 +125,8 @@ async function testMoveNoteToFolder() {
             };
         }, noteId);
         
-        if (verifyRootResponse.data.note.folderName) {
-            throw new Error(`Note should be at root but is in folder: ${verifyRootResponse.data.note.folderName}`);
+        if (verifyRootResponse.data.folderName) {
+            throw new Error(`Note should be at root but is in folder: ${verifyRootResponse.data.folderName}`);
         }
         
         console.log('✅ Note successfully moved back to root');
@@ -252,8 +252,8 @@ async function testDeleteFolder() {
             };
         }, noteId);
         
-        if (verifyNoteAtRoot.data.note.folderName) {
-            throw new Error(`Note should be at root after folder deletion but is in: ${verifyNoteAtRoot.data.note.folderName}`);
+        if (verifyNoteAtRoot.data.folderName) {
+            throw new Error(`Note should be at root after folder deletion but is in: ${verifyNoteAtRoot.data.folderName}`);
         }
         
         console.log('✅ Note correctly moved to root after folder deletion');
