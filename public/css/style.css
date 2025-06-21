@@ -600,3 +600,167 @@ h1 {
 .sleepy-eyes.show {
     opacity: 0.8;
 }
+
+/* Folder Styles */
+.folder {
+    border-bottom: 1px solid #3e3e42;
+    background: #2b2b2b;
+}
+
+.folder-header {
+    padding: 10px 15px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    position: relative;
+}
+
+.folder-header:hover {
+    background: #323234;
+}
+
+.folder-expand-icon {
+    font-size: 12px;
+    color: #858585;
+    transition: transform 0.2s ease;
+    flex-shrink: 0;
+}
+
+.folder.expanded .folder-expand-icon {
+    transform: rotate(90deg);
+}
+
+.folder-icon {
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+.folder-name {
+    flex: 1;
+    font-weight: 500;
+    color: #e0e0e0;
+}
+
+.folder-actions {
+    display: flex;
+    gap: 4px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.folder-header:hover .folder-actions {
+    opacity: 1;
+}
+
+.folder-action-icon {
+    font-size: 12px;
+    padding: 2px 4px;
+    cursor: pointer;
+    border-radius: 2px;
+    color: #858585;
+}
+
+.folder-action-icon:hover {
+    background: #404042;
+    color: #d4d4d4;
+}
+
+.folder-notes {
+    border-left: 2px solid #444;
+    margin-left: 15px;
+}
+
+.folder-note {
+    border-bottom: 1px solid #3a3a3a !important;
+    background: #262626 !important;
+    padding-left: 25px !important;
+}
+
+.folder-note:hover {
+    background: #2e2e2e !important;
+}
+
+.folder-note.active {
+    background: #0a4167 !important;
+}
+
+.folder-note.typing {
+    background: #0b4d7a !important;
+}
+
+/* Move Note Modal */
+.folder-select-list {
+    max-height: 300px;
+    overflow-y: auto;
+    margin-bottom: 20px;
+}
+
+.folder-option {
+    padding: 12px;
+    background: #1e1e1e;
+    border: 1px solid #3e3e42;
+    margin-bottom: 5px;
+    cursor: pointer;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.folder-option:hover {
+    background: #2a2a2a;
+    border-color: #0e639c;
+}
+
+.folder-option.selected {
+    background: #0e639c;
+    border-color: #1177bb;
+}
+
+.modal-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+.modal-button {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    border-radius: 4px;
+}
+
+.modal-button:not(.cancel) {
+    background: #0e639c;
+    color: white;
+}
+
+.modal-button:not(.cancel):hover {
+    background: #1177bb;
+}
+
+.modal-button.cancel {
+    background: #424242;
+    color: #d4d4d4;
+}
+
+.modal-button.cancel:hover {
+    background: #4e4e4e;
+}
+
+.move-note-btn {
+    background: #4a5f8a;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 12px;
+    border-radius: 3px;
+}
+
+.move-note-btn:hover {
+    background: #5a6f9a;
+}

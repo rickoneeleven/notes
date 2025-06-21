@@ -28,7 +28,7 @@ RewriteRule ^assets/([^/]+)/(.+)$ note.php?id=$1&asset=$2 [QSA,L]
 # Route API requests to api/index.php
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule ^api/(.*)$ api/index.php?route=$1 [QSA,L]
+RewriteRule ^api/(.*)$ api/index.php?route=$1 [QSA,L,B]
 
 # Prevent directory listing
 Options -Indexes

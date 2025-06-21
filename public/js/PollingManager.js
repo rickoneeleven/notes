@@ -6,6 +6,7 @@ class PollingManager {
         this.isIdle = false;
         this.lastActivity = Date.now();
         this.lastEditTime = 0;
+        this.idleTimeout = 300000; // Default 5 minutes
     }
 
     setApp(app) {
@@ -33,6 +34,10 @@ class PollingManager {
         this.app.ui.setIdleState(idle);
     }
     
+    setIdleTimeout(timeout) {
+        this.idleTimeout = timeout;
+    }
+    
     async goToSleep() {
         console.log('[PollingManager.goToSleep] Entering idle state');
         await this.app.editorStateService.flushPendingAutosave();
@@ -51,7 +56,7 @@ class PollingManager {
         if (!this.app.currentNote) return;
         
         this.pollTimer = setInterval(() => {
-            if (Date.now() - this.lastActivity > 300000) {
+            if (Date.now() - this.lastActivity > this.idleTimeout) {
                 if (!this.isIdle) {
                     this.goToSleep();
                 }
@@ -73,7 +78,7 @@ class PollingManager {
         this.stopNotesListPolling();
         
         this.notesListPollTimer = setInterval(() => {
-            if (Date.now() - this.lastActivity > 300000) {
+            if (Date.now() - this.lastActivity > this.idleTimeout) {
                 if (!this.isIdle) {
                     this.goToSleep();
                 }

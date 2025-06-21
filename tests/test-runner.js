@@ -16,7 +16,11 @@ const MAX_CONCURRENT = 3; // Limit concurrent tests to avoid resource exhaustion
 const ISOLATED_TESTS = [
     'test-fast-click-away.js',
     'test-patient-save.js',
-    'test-security.js'
+    'test-security.js',
+    'test-folders.js',
+    'test-idle-state.js',
+    'test-note-rename.js',
+    'test-simple-save.js'
 ];
 
 async function runTestWithTimeout(testFile, timeout = TEST_TIMEOUT) {

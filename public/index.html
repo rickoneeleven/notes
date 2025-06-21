@@ -18,6 +18,7 @@
         <aside class="sidebar">
             <div class="sidebar-header">
                 <button id="newNoteBtn" class="new-note-btn" style="display: none;">+ New Note</button>
+                <button id="newFolderBtn" class="new-note-btn" style="display: none; margin-top: 5px;">📁 New Folder</button>
             </div>
             <ul id="notesList" class="notes-list">
                 <!-- Notes will be loaded here -->
@@ -41,6 +42,7 @@
                     </label>
                     <button id="directLinkBtn" class="direct-link-btn" title="Get direct link to text version">🔗</button>
                     <button id="addAssetBtn" class="add-asset-btn" style="display: none;">📎 Add Asset</button>
+                    <button id="moveNoteBtn" class="move-note-btn" style="display: none;">📁 Move</button>
                     <button id="deleteNoteBtn" class="delete-btn">Delete</button>
                 </div>
             </div>
@@ -92,6 +94,18 @@
     <input type="file" id="assetFileInput" style="display: none;" />
     
     <div id="sleepyEyes" class="sleepy-eyes" style="display: none;">😴</div>
+    
+    <div id="moveNoteModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h2>Move Note</h2>
+            <div id="folderSelectList" class="folder-select-list">
+                <!-- Folder options will be populated here -->
+            </div>
+            <div class="modal-buttons">
+                <button id="cancelMoveBtn" class="modal-button cancel">Cancel</button>
+            </div>
+        </div>
+    </div>
     
 </body>
 </html>

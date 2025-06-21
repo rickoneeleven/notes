@@ -16,6 +16,7 @@ define('DELETED_DIR', '../../notes/deleted/');
 define('MAX_UPLOAD_SIZE', 50 * 1024 * 1024); // 50MB
 
 require_once 'assets.php';
+require_once 'folders.php';
 
 if (!file_exists(NOTES_DIR)) {
     mkdir(NOTES_DIR, 0755, true);
@@ -31,6 +32,7 @@ $method = $_SERVER['REQUEST_METHOD'];
 
 error_log("API Request - Method: $method, Route: $route");
 
+
 function isAuthenticated() {
     return isset($_SESSION['authenticated']) && $_SESSION['authenticated'] === true;
 }
@@ -44,21 +46,56 @@ function generateId() {
 }
 
 function getNotes($includePrivate = false) {
-    $notes = [];
-    $files = glob(NOTES_DIR . '*.json');
+    $rootNotes = [];
+    $folderNotes = [];
+    $folders = getFolders();
+    $folderMap = [];
     
+    // Initialize folder map
+    foreach ($folders as $folder) {
+        $folderMap[$folder['name']] = [
+            'type' => 'folder',
+            'name' => $folder['name'],
+            'lastModified' => $folder['lastModified'],
+            'notes' => []
+        ];
+    }
+    
+    // Process all notes
+    $files = glob(NOTES_DIR . '*.json');
     foreach ($files as $file) {
+        if (basename($file) === 'folders.json') continue;
+        
         $note = json_decode(file_get_contents($file), true);
         if ($note['visibility'] === 'public' || $includePrivate) {
-            $notes[] = $note;
+            if (isset($note['folderName']) && $note['folderName'] !== null && isset($folderMap[$note['folderName']])) {
+                $folderMap[$note['folderName']]['notes'][] = $note;
+            } else {
+                $rootNotes[] = $note;
+            }
         }
     }
     
-    usort($notes, function($a, $b) {
+    // Sort notes within each folder
+    foreach ($folderMap as &$folder) {
+        usort($folder['notes'], function($a, $b) {
+            return strtotime($b['modified']) - strtotime($a['modified']);
+        });
+    }
+    
+    // Sort root notes by modified date
+    usort($rootNotes, function($a, $b) {
         return strtotime($b['modified']) - strtotime($a['modified']);
     });
     
-    return $notes;
+    // Sort folders by lastModified
+    $folderArray = array_values($folderMap);
+    usort($folderArray, function($a, $b) {
+        return strtotime($b['lastModified']) - strtotime($a['lastModified']);
+    });
+    
+    // Combine: root notes first, then folders
+    return array_merge($rootNotes, $folderArray);
 }
 
 function getNote($id, $includePrivate = false) {
@@ -85,6 +122,11 @@ function saveNote($note) {
     } elseif (!isTestSession()) {
         // Ensure production notes NEVER get test flag
         unset($note['is_test']);
+    }
+    
+    // Update folder timestamp if note belongs to a folder
+    if (isset($note['folderName']) && $note['folderName'] !== null) {
+        updateFolderTimestamp($note['folderName']);
     }
     
     cleanupOldDeletedNotes();
@@ -321,6 +363,23 @@ switch ($route) {
                 http_response_code(403);
                 echo json_encode(['error' => 'Forbidden']);
             }
+        } elseif (preg_match('/^notes\/([^\/]+)\/move$/', $route, $matches) && isAuthenticated()) {
+            if ($method === 'PUT') {
+                $noteId = $matches[1];
+                $input = json_decode(file_get_contents('php://input'), true);
+                $folderName = $input['folderName'] ?? null;
+                
+                $result = moveNoteToFolder($noteId, $folderName);
+                if (isset($result['error'])) {
+                    http_response_code($result['code']);
+                    echo json_encode($result);  // Return full result including debug info
+                } else {
+                    echo json_encode($result['note']);
+                }
+            } else {
+                http_response_code(405);
+                echo json_encode(['error' => 'Method not allowed']);
+            }
         } elseif (preg_match('/^notes\/(.+)$/', $route, $matches)) {
             $noteId = $matches[1];
             
@@ -407,6 +466,51 @@ switch ($route) {
             } else {
                 http_response_code(403);
                 echo json_encode(['error' => 'Forbidden - test cleanup requires test session']);
+            }
+        } elseif ($route === 'folders' && isAuthenticated()) {
+            if ($method === 'GET') {
+                $folders = getFolders();
+                echo json_encode(['folders' => $folders]);
+            } elseif ($method === 'POST') {
+                $input = json_decode(file_get_contents('php://input'), true);
+                $folderName = trim($input['name'] ?? '');
+                
+                $result = createFolder($folderName);
+                if (isset($result['error'])) {
+                    http_response_code($result['code']);
+                    echo json_encode(['error' => $result['error']]);
+                } else {
+                    echo json_encode($result);
+                }
+            } else {
+                http_response_code(405);
+                echo json_encode(['error' => 'Method not allowed']);
+            }
+        } elseif (preg_match('/^folders\/(.+)$/', $route, $matches) && isAuthenticated()) {
+            $folderName = urldecode($matches[1]);
+            
+            if ($method === 'PUT') {
+                $input = json_decode(file_get_contents('php://input'), true);
+                $newName = trim($input['name'] ?? '');
+                
+                $result = renameFolder($folderName, $newName);
+                if (isset($result['error'])) {
+                    http_response_code($result['code']);
+                    echo json_encode(['error' => $result['error']]);
+                } else {
+                    echo json_encode($result);
+                }
+            } elseif ($method === 'DELETE') {
+                $result = deleteFolder($folderName);
+                if (isset($result['error'])) {
+                    http_response_code($result['code']);
+                    echo json_encode(['error' => $result['error']]);
+                } else {
+                    echo json_encode($result);
+                }
+            } else {
+                http_response_code(405);
+                echo json_encode(['error' => 'Method not allowed']);
             }
         } else {
             http_response_code(404);

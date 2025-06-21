@@ -51,6 +51,10 @@ class EventHandler {
             this.app.noteManager.createNote();
         });
         
+        document.getElementById('newFolderBtn').addEventListener('click', () => {
+            this.app.noteManager.createFolder();
+        });
+        
         document.getElementById('publicToggle').addEventListener('change', () => {
             this.app.handleVisibilityChange();
         });
@@ -61,6 +65,10 @@ class EventHandler {
         
         document.getElementById('directLinkBtn').addEventListener('click', () => {
             this.app.copyDirectLink();
+        });
+        
+        document.getElementById('moveNoteBtn').addEventListener('click', () => {
+            this.app.ui.showMoveNoteModal();
         });
         
         document.getElementById('deleteNoteBtn').addEventListener('click', () => {
@@ -132,6 +140,16 @@ class EventHandler {
             if (e.target.id === 'deletedNotesModal') {
                 this.app.ui.hideDeletedNotesModal();
             }
+        });
+        
+        document.getElementById('moveNoteModal').addEventListener('click', (e) => {
+            if (e.target.id === 'moveNoteModal') {
+                this.app.ui.hideMoveNoteModal();
+            }
+        });
+        
+        document.getElementById('cancelMoveBtn').addEventListener('click', () => {
+            this.app.ui.hideMoveNoteModal();
         });
     }
 

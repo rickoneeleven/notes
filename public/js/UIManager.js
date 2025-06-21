@@ -10,26 +10,32 @@ class UIManager {
     updateAuthenticationUI() {
         const loginBtn = document.getElementById('loginBtn');
         const newNoteBtn = document.getElementById('newNoteBtn');
+        const newFolderBtn = document.getElementById('newFolderBtn');
         const deletedNotesBtn = document.getElementById('deletedNotesBtn');
         const editorHeader = document.getElementById('editorHeader');
         const addAssetBtn = document.getElementById('addAssetBtn');
+        const moveNoteBtn = document.getElementById('moveNoteBtn');
         
         if (this.app.isAuthenticated) {
             loginBtn.textContent = 'Logout';
             newNoteBtn.style.display = 'block';
+            newFolderBtn.style.display = 'block';
             deletedNotesBtn.style.display = 'block';
             if (this.app.currentNote) {
                 editorHeader.style.display = 'flex';
                 addAssetBtn.style.display = 'inline-block';
+                moveNoteBtn.style.display = 'inline-block';
             } else {
                 editorHeader.style.display = 'none';
             }
         } else {
             loginBtn.textContent = 'Login';
             newNoteBtn.style.display = 'none';
+            newFolderBtn.style.display = 'none';
             deletedNotesBtn.style.display = 'none';
             editorHeader.style.display = 'none';
             addAssetBtn.style.display = 'none';
+            moveNoteBtn.style.display = 'none';
             
             if (!this.app.currentNote && this.app.editorManager) {
                 this.app.editorManager.setContent('');
@@ -65,6 +71,100 @@ class UIManager {
         setTimeout(() => {
             modal.style.display = 'none';
         }, 300);
+    }
+
+    showMoveNoteModal() {
+        const modal = document.getElementById('moveNoteModal');
+        const folderList = document.getElementById('folderSelectList');
+        
+        // Populate folder options
+        folderList.innerHTML = '';
+        
+        // Add "Move to Root" option
+        const rootOption = document.createElement('div');
+        rootOption.className = 'folder-option';
+        rootOption.innerHTML = '<span>📂</span><span>Move to Root</span>';
+        rootOption.addEventListener('click', () => {
+            this.selectMoveTarget(null);
+        });
+        folderList.appendChild(rootOption);
+        
+        // Add "Create New Folder" option
+        const createOption = document.createElement('div');
+        createOption.className = 'folder-option';
+        createOption.innerHTML = '<span>➕</span><span>Create New Folder</span>';
+        createOption.addEventListener('click', () => {
+            this.createFolderAndMove();
+        });
+        folderList.appendChild(createOption);
+        
+        // Add existing folders
+        this.app.notes.forEach(item => {
+            if (item.type === 'folder') {
+                const folderOption = document.createElement('div');
+                folderOption.className = 'folder-option';
+                folderOption.innerHTML = `<span>📁</span><span>${item.name}</span>`;
+                folderOption.addEventListener('click', () => {
+                    this.selectMoveTarget(item.name);
+                });
+                folderList.appendChild(folderOption);
+            }
+        });
+        
+        modal.style.display = 'flex';
+    }
+
+    hideMoveNoteModal() {
+        document.getElementById('moveNoteModal').style.display = 'none';
+        // Clear any selected options
+        document.querySelectorAll('.folder-option').forEach(option => {
+            option.classList.remove('selected');
+        });
+    }
+
+    selectMoveTarget(folderName) {
+        // Clear previous selection
+        document.querySelectorAll('.folder-option').forEach(option => {
+            option.classList.remove('selected');
+        });
+        
+        // Mark current selection
+        event.target.closest('.folder-option').classList.add('selected');
+        
+        // Move the note
+        this.moveCurrentNote(folderName);
+    }
+
+    async createFolderAndMove() {
+        const folderName = prompt('Enter folder name:');
+        if (!folderName) return;
+        
+        try {
+            const response = await fetch('/api/folders', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: folderName })
+            });
+            
+            if (response.ok) {
+                await this.moveCurrentNote(folderName);
+            } else {
+                const error = await response.json();
+                alert(`Error: ${error.error}`);
+            }
+        } catch (error) {
+            console.error('Failed to create folder:', error);
+            alert('Failed to create folder');
+        }
+    }
+
+    async moveCurrentNote(folderName) {
+        if (!this.app.currentNote) return;
+        
+        const success = await this.app.noteManager.moveNoteToFolder(this.app.currentNote.id, folderName);
+        if (success) {
+            this.hideMoveNoteModal();
+        }
     }
 
     setIdleState(idle) {

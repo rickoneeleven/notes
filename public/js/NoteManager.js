@@ -29,8 +29,52 @@ class NoteManager {
     }
 
     generateNewNoteTitle() {
-        const existingNewNotes = this.app.notes.filter(n => n.title.startsWith('new'));
+        const allNotes = this.getAllNotes();
+        const existingNewNotes = allNotes.filter(n => n.title.startsWith('new'));
         return existingNewNotes.length > 0 ? `new(${existingNewNotes.length})` : 'new';
+    }
+
+    getAllNotes() {
+        const allNotes = [];
+        this.app.notes.forEach(item => {
+            if (item.type === 'folder') {
+                allNotes.push(...item.notes);
+            } else {
+                allNotes.push(item);
+            }
+        });
+        return allNotes;
+    }
+
+    updateNoteInList(updatedNote) {
+        // Remove note from current position
+        this.removeNoteFromList(updatedNote.id);
+        
+        // Add note to correct position based on folder
+        if (updatedNote.folderName) {
+            // Find the folder and add the note
+            const folder = this.app.notes.find(item => item.type === 'folder' && item.name === updatedNote.folderName);
+            if (folder) {
+                folder.notes.unshift(updatedNote);
+                folder.lastModified = new Date().toISOString();
+            }
+        } else {
+            // Add to root notes at the beginning
+            this.app.notes.unshift(updatedNote);
+        }
+    }
+
+    removeNoteFromList(noteId) {
+        // Remove from root notes
+        this.app.notes = this.app.notes.filter(item => {
+            if (item.type === 'folder') {
+                // Remove from folder notes
+                item.notes = item.notes.filter(note => note.id !== noteId);
+                return true;
+            } else {
+                return item.id !== noteId;
+            }
+        });
     }
 
     async createNote(initialContent = '') {
@@ -49,7 +93,7 @@ class NoteManager {
             });
             
             const note = await response.json();
-            this.app.notes.unshift(note);
+            this.updateNoteInList(note);
             this.renderNotesList();
             this.app.selectNote(note);
             return note;
@@ -109,12 +153,8 @@ class NoteManager {
                 this.app.noteStateService.contentHash = newHash;
             }
             
-            const index = this.app.notes.findIndex(n => n.id === updatedNote.id);
-            if (index !== -1) {
-                this.app.notes.splice(index, 1);
-                this.app.notes.unshift(updatedNote);
-                this.renderNotesList();
-            }
+            this.updateNoteInList(updatedNote);
+            this.renderNotesList();
             return true;
         } catch (error) {
             console.error('[NoteManager.saveNote] ERROR MESSAGE:', error.message);
@@ -131,7 +171,7 @@ class NoteManager {
                 method: 'DELETE'
             });
             
-            this.app.notes = this.app.notes.filter(n => n.id !== noteId);
+            this.removeNoteFromList(noteId);
             this.renderNotesList();
             return true;
         } catch (error) {
@@ -147,8 +187,78 @@ class NoteManager {
         
         notesList.innerHTML = '';
         
-        this.app.notes.forEach(note => {
+        this.app.notes.forEach(item => {
+            if (item.type === 'folder') {
+                const folderElement = this.createFolderElement(item);
+                notesList.appendChild(folderElement);
+            } else {
+                const li = this.createNoteListItem(item);
+                
+                if (this.app.currentNote && item.id === this.app.currentNote.id) {
+                    li.classList.add('active');
+                    if (wasTyping) {
+                        li.classList.add('typing');
+                    }
+                }
+                
+                notesList.appendChild(li);
+            }
+        });
+    }
+
+    createFolderElement(folder) {
+        const folderDiv = document.createElement('div');
+        folderDiv.className = 'folder';
+        folderDiv.dataset.folderName = folder.name;
+        
+        // Folder header
+        const folderHeader = document.createElement('div');
+        folderHeader.className = 'folder-header';
+        
+        const expandIcon = document.createElement('span');
+        expandIcon.className = 'folder-expand-icon';
+        expandIcon.textContent = '▶';
+        folderHeader.appendChild(expandIcon);
+        
+        const folderIcon = document.createElement('span');
+        folderIcon.className = 'folder-icon';
+        folderIcon.textContent = '📁';
+        folderHeader.appendChild(folderIcon);
+        
+        const folderName = document.createElement('span');
+        folderName.className = 'folder-name';
+        folderName.textContent = folder.name;
+        folderHeader.appendChild(folderName);
+        
+        const folderActions = document.createElement('span');
+        folderActions.className = 'folder-actions';
+        
+        const renameIcon = document.createElement('span');
+        renameIcon.className = 'folder-action-icon rename-folder';
+        renameIcon.textContent = '✏';
+        renameIcon.title = 'Rename folder';
+        folderActions.appendChild(renameIcon);
+        
+        const deleteIcon = document.createElement('span');
+        deleteIcon.className = 'folder-action-icon delete-folder';
+        deleteIcon.textContent = '🗑';
+        deleteIcon.title = 'Delete folder';
+        folderActions.appendChild(deleteIcon);
+        
+        folderHeader.appendChild(folderActions);
+        folderDiv.appendChild(folderHeader);
+        
+        // Folder notes container
+        const folderNotes = document.createElement('div');
+        folderNotes.className = 'folder-notes';
+        folderNotes.style.display = 'none';
+        
+        const typingNoteId = this.app.currentNote?.id;
+        const wasTyping = typingNoteId && document.querySelector(`[data-note-id="${typingNoteId}"]`)?.classList.contains('typing');
+        
+        folder.notes.forEach(note => {
             const li = this.createNoteListItem(note);
+            li.classList.add('folder-note');
             
             if (this.app.currentNote && note.id === this.app.currentNote.id) {
                 li.classList.add('active');
@@ -157,8 +267,109 @@ class NoteManager {
                 }
             }
             
-            notesList.appendChild(li);
+            folderNotes.appendChild(li);
         });
+        
+        folderDiv.appendChild(folderNotes);
+        
+        // Event listeners
+        folderHeader.addEventListener('click', (e) => {
+            if (e.target.classList.contains('folder-action-icon')) return;
+            this.toggleFolder(folderDiv);
+        });
+        
+        renameIcon.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.renameFolder(folder.name);
+        });
+        
+        deleteIcon.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.deleteFolder(folder.name);
+        });
+        
+        return folderDiv;
+    }
+
+    toggleFolder(folderDiv) {
+        const expandIcon = folderDiv.querySelector('.folder-expand-icon');
+        const folderNotes = folderDiv.querySelector('.folder-notes');
+        
+        if (folderNotes.style.display === 'none') {
+            folderNotes.style.display = 'block';
+            expandIcon.textContent = '▼';
+            folderDiv.classList.add('expanded');
+        } else {
+            folderNotes.style.display = 'none';
+            expandIcon.textContent = '▶';
+            folderDiv.classList.remove('expanded');
+        }
+    }
+
+    async renameFolder(oldName) {
+        const newName = prompt('Enter new folder name:', oldName);
+        if (!newName || newName === oldName) return;
+        
+        try {
+            const response = await fetch(`/api/folders/${encodeURIComponent(oldName)}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: newName })
+            });
+            
+            if (response.ok) {
+                await this.loadNotes();
+            } else {
+                const error = await response.json();
+                alert(`Error: ${error.error}`);
+            }
+        } catch (error) {
+            console.error('Failed to rename folder:', error);
+            alert('Failed to rename folder');
+        }
+    }
+
+    async createFolder() {
+        const folderName = prompt('Enter folder name:');
+        if (!folderName) return;
+        
+        try {
+            const response = await fetch('/api/folders', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: folderName })
+            });
+            
+            if (response.ok) {
+                await this.loadNotes();
+            } else {
+                const error = await response.json();
+                alert(`Error: ${error.error}`);
+            }
+        } catch (error) {
+            console.error('Failed to create folder:', error);
+            alert('Failed to create folder');
+        }
+    }
+
+    async deleteFolder(folderName) {
+        if (!confirm(`Delete folder "${folderName}"? All notes will be moved to the root level.`)) return;
+        
+        try {
+            const response = await fetch(`/api/folders/${encodeURIComponent(folderName)}`, {
+                method: 'DELETE'
+            });
+            
+            if (response.ok) {
+                await this.loadNotes();
+            } else {
+                const error = await response.json();
+                alert(`Error: ${error.error}`);
+            }
+        } catch (error) {
+            console.error('Failed to delete folder:', error);
+            alert('Failed to delete folder');
+        }
     }
 
     createNoteListItem(note) {
@@ -216,6 +427,29 @@ class NoteManager {
         }
         
         return icons;
+    }
+
+    async moveNoteToFolder(noteId, folderName) {
+        try {
+            const response = await fetch(`/api/notes/${noteId}/move`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ folderName: folderName })
+            });
+            
+            if (response.ok) {
+                await this.loadNotes();
+                return true;
+            } else {
+                const error = await response.json();
+                alert(`Error: ${error.error}`);
+                return false;
+            }
+        } catch (error) {
+            console.error('Failed to move note:', error);
+            alert('Failed to move note');
+            return false;
+        }
     }
 
     updateCurrentNoteAssets(assets) {
