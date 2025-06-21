@@ -1,6 +1,5 @@
 # Configuration files with sensitive data
 config.json
-CLAUDE.md
 
 # Notes storage directory
 notes/
