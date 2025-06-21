@@ -189,8 +189,10 @@ class NoteManager {
         
         this.app.notes.forEach(item => {
             if (item.type === 'folder') {
-                const folderElement = this.createFolderElement(item);
-                notesList.appendChild(folderElement);
+                if (this.app.isAuthenticated) {
+                    const folderElement = this.createFolderElement(item);
+                    notesList.appendChild(folderElement);
+                }
             } else {
                 const li = this.createNoteListItem(item);
                 
@@ -233,17 +235,19 @@ class NoteManager {
         const folderActions = document.createElement('span');
         folderActions.className = 'folder-actions';
         
-        const renameIcon = document.createElement('span');
-        renameIcon.className = 'folder-action-icon rename-folder';
-        renameIcon.textContent = '✏';
-        renameIcon.title = 'Rename folder';
-        folderActions.appendChild(renameIcon);
-        
-        const deleteIcon = document.createElement('span');
-        deleteIcon.className = 'folder-action-icon delete-folder';
-        deleteIcon.textContent = '🗑';
-        deleteIcon.title = 'Delete folder';
-        folderActions.appendChild(deleteIcon);
+        if (this.app.isAuthenticated) {
+            const renameIcon = document.createElement('span');
+            renameIcon.className = 'folder-action-icon rename-folder';
+            renameIcon.textContent = '✏';
+            renameIcon.title = 'Rename folder';
+            folderActions.appendChild(renameIcon);
+            
+            const deleteIcon = document.createElement('span');
+            deleteIcon.className = 'folder-action-icon delete-folder';
+            deleteIcon.textContent = '🗑';
+            deleteIcon.title = 'Delete folder';
+            folderActions.appendChild(deleteIcon);
+        }
         
         folderHeader.appendChild(folderActions);
         folderDiv.appendChild(folderHeader);
@@ -278,15 +282,24 @@ class NoteManager {
             this.toggleFolder(folderDiv);
         });
         
-        renameIcon.addEventListener('click', (e) => {
-            e.stopPropagation();
-            this.renameFolder(folder.name);
-        });
-        
-        deleteIcon.addEventListener('click', (e) => {
-            e.stopPropagation();
-            this.deleteFolder(folder.name);
-        });
+        if (this.app.isAuthenticated) {
+            const renameIcon = folderActions.querySelector('.rename-folder');
+            const deleteIcon = folderActions.querySelector('.delete-folder');
+            
+            if (renameIcon) {
+                renameIcon.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.renameFolder(folder.name);
+                });
+            }
+            
+            if (deleteIcon) {
+                deleteIcon.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.deleteFolder(folder.name);
+                });
+            }
+        }
         
         return folderDiv;
     }

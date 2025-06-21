@@ -169,8 +169,8 @@ public_html/                     # Project root
 
 **Requirements**:
 - Dev server on localhost:3000
-- Dual password setup via `php static_server_files/setup-dual-password.php`
-- Auto-generated test password in `tests/test-password.txt`
+- Test password already exists in `tests/test-password.txt` (no need to regenerate)
+- **CRITICAL**: Never run `php static_server_files/setup-dual-password.php` - it causes Node.js crashes due to large output
 
 **Claude Testing Process**: Run each test individually, report results, provide pass/fail summary
 
@@ -193,7 +193,7 @@ public_html/                     # Project root
 
 1. **Backup**: `cp -rf notes/* backup/` (data safety)
 2. **Dependencies**: `npm install` (if package.json changed)
-3. **Authentication**: `php static_server_files/setup-dual-password.php`
+3. **Authentication**: Test password pre-exists in `tests/test-password.txt` (skip setup)
 4. **Dev Server**: `npm run dev` (localhost:3000 with API proxy)
 5. **Testing**: Individual test execution `node tests/test-<name>.js`
 6. **User Approval**: Confirm before build
@@ -217,8 +217,8 @@ public_html/                     # Project root
 
 **Maintenance**:
 - Check dependencies: `npm outdated`
-- Setup passwords: `php static_server_files/setup-dual-password.php`
 - Backup notes: `cp -rf notes/* backup/`
+- **Note**: Test password exists in `tests/test-password.txt` - no setup needed
 
 ## Key Features
 - **Real-time Collaboration**: Conflict detection with resolution UI

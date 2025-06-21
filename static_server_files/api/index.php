@@ -48,17 +48,19 @@ function generateId() {
 function getNotes($includePrivate = false) {
     $rootNotes = [];
     $folderNotes = [];
-    $folders = getFolders();
+    $folders = $includePrivate ? getFolders() : [];
     $folderMap = [];
     
-    // Initialize folder map
-    foreach ($folders as $folder) {
-        $folderMap[$folder['name']] = [
-            'type' => 'folder',
-            'name' => $folder['name'],
-            'lastModified' => $folder['lastModified'],
-            'notes' => []
-        ];
+    // Initialize folder map (only if authenticated)
+    if ($includePrivate) {
+        foreach ($folders as $folder) {
+            $folderMap[$folder['name']] = [
+                'type' => 'folder',
+                'name' => $folder['name'],
+                'lastModified' => $folder['lastModified'],
+                'notes' => []
+            ];
+        }
     }
     
     // Process all notes
@@ -88,13 +90,16 @@ function getNotes($includePrivate = false) {
         return strtotime($b['modified']) - strtotime($a['modified']);
     });
     
-    // Sort folders by lastModified
-    $folderArray = array_values($folderMap);
-    usort($folderArray, function($a, $b) {
-        return strtotime($b['lastModified']) - strtotime($a['lastModified']);
-    });
+    // Sort folders by lastModified (only if authenticated)
+    $folderArray = [];
+    if ($includePrivate) {
+        $folderArray = array_values($folderMap);
+        usort($folderArray, function($a, $b) {
+            return strtotime($b['lastModified']) - strtotime($a['lastModified']);
+        });
+    }
     
-    // Combine: root notes first, then folders
+    // Combine: root notes first, then folders (folders only if authenticated)
     return array_merge($rootNotes, $folderArray);
 }
 
