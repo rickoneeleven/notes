@@ -133,9 +133,27 @@ async function testMoveNoteToFolder() {
         
         // Cleanup
         await helper.cleanupTestNotes(page);
-        await page.evaluate(async (folderName) => {
-            await fetch(`/api/folders/${encodeURIComponent(folderName)}`, { method: 'DELETE' });
-        }, folderName);
+        
+        // Clean up test folder with error handling
+        try {
+            const cleanupResponse = await page.evaluate(async (folderName) => {
+                const response = await fetch(`/api/folders/${encodeURIComponent(folderName)}`, { 
+                    method: 'DELETE' 
+                });
+                return {
+                    status: response.status,
+                    data: await response.text()
+                };
+            }, folderName);
+            
+            if (cleanupResponse.status === 200) {
+                console.log('✅ Test folder cleaned up');
+            } else {
+                console.log(`⚠️ Failed to cleanup test folder: ${cleanupResponse.status}`);
+            }
+        } catch (cleanupError) {
+            console.log('⚠️ Folder cleanup error:', cleanupError.message);
+        }
         
         console.log('=== MOVE NOTE TEST PASSED ===');
         return true;
