@@ -15,7 +15,6 @@ class NoteManager {
                 this.app.notes = await response.json();
                 this.renderNotesList();
             } else if (response.status === 403) {
-                // Not authenticated - clear notes list
                 this.app.notes = [];
                 this.renderNotesList();
             } else {
@@ -47,28 +46,22 @@ class NoteManager {
     }
 
     updateNoteInList(updatedNote) {
-        // Remove note from current position
         this.removeNoteFromList(updatedNote.id);
         
-        // Add note to correct position based on folder
         if (updatedNote.folderName) {
-            // Find the folder and add the note
             const folder = this.app.notes.find(item => item.type === 'folder' && item.name === updatedNote.folderName);
             if (folder) {
                 folder.notes.unshift(updatedNote);
                 folder.lastModified = new Date().toISOString();
             }
         } else {
-            // Add to root notes at the beginning
             this.app.notes.unshift(updatedNote);
         }
     }
 
     removeNoteFromList(noteId) {
-        // Remove from root notes
         this.app.notes = this.app.notes.filter(item => {
             if (item.type === 'folder') {
-                // Remove from folder notes
                 item.notes = item.notes.filter(note => note.id !== noteId);
                 return true;
             } else {
@@ -147,7 +140,6 @@ class NoteManager {
                 timestamp: saveEndTime
             });
             
-            // Only update current note metadata if we're saving the current note
             if (!targetNoteId || (this.app.currentNote && this.app.currentNote.id === noteId)) {
                 this.app.noteStateService.updateCurrentNoteMetadata(updatedNote);
                 this.app.noteStateService.contentHash = newHash;
@@ -213,7 +205,6 @@ class NoteManager {
         folderDiv.className = 'folder';
         folderDiv.dataset.folderName = folder.name;
         
-        // Folder header
         const folderHeader = document.createElement('div');
         folderHeader.className = 'folder-header';
         
@@ -252,7 +243,6 @@ class NoteManager {
         folderHeader.appendChild(folderActions);
         folderDiv.appendChild(folderHeader);
         
-        // Folder notes container
         const folderNotes = document.createElement('div');
         folderNotes.className = 'folder-notes';
         folderNotes.style.display = 'none';
@@ -276,7 +266,6 @@ class NoteManager {
         
         folderDiv.appendChild(folderNotes);
         
-        // Event listeners
         folderHeader.addEventListener('click', (e) => {
             if (e.target.classList.contains('folder-action-icon')) return;
             this.toggleFolder(folderDiv);
@@ -468,7 +457,6 @@ class NoteManager {
     updateCurrentNoteAssets(assets) {
         if (this.app.currentNote) {
             this.app.currentNote.assets = assets;
-            // Update the note in the notes array
             const index = this.app.notes.findIndex(n => n.id === this.app.currentNote.id);
             if (index !== -1) {
                 this.app.notes[index].assets = assets;
