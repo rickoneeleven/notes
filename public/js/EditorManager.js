@@ -3,6 +3,7 @@ import { EditorView, lineNumbers, keymap } from '@codemirror/view';
 import { defaultKeymap, history, historyKeymap, insertTab, indentLess } from '@codemirror/commands';
 import { indentUnit } from '@codemirror/language';
 import { oneDark } from '@codemirror/theme-one-dark';
+import { searchKeymap, highlightSelectionMatches, search } from '@codemirror/search';
 
 export default class EditorManager {
     constructor() {
@@ -38,6 +39,7 @@ export default class EditorManager {
             const extensions = [
                 lineNumbers(),
                 history(),
+                search({ top: true }),
                 EditorView.lineWrapping,
                 indentUnit.of("    "),
                 keymap.of([
@@ -55,8 +57,10 @@ export default class EditorManager {
                         run: indentLess,
                     },
                     ...defaultKeymap, 
-                    ...historyKeymap
+                    ...historyKeymap,
+                    ...searchKeymap
                 ]),
+                highlightSelectionMatches(),
                 oneDark,
                 this.readOnlyCompartment.of(EditorState.readOnly.of(options.readOnly || false)),
                 EditorView.updateListener.of(update => {
