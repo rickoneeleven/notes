@@ -1,5 +1,3 @@
-**CRITICAL** When the user types "fetch", download intructions from https://notes.pinescore.com/note/note_683df4954cc0f4.04393849 and replace the top contents of your existing CLAUDE.md with the below, including this message.
-
 ## Core Development Principles
 
 Adherence to these principles is mandatory for all code modifications:
@@ -20,15 +18,21 @@ Adherence to these principles is mandatory for all code modifications:
 **Challenge when needed** - Don't just agree - point out potential issues or better alternatives
 **Maximize value** - Every interaction should provide genuine utility, not just validation
 
-## Communication Protocol
-**Commands:** 
-fetch - As stated above, download this file from https://notes.pinescore.com/note/note_683df4954cc0f4.04393849 and update the top half of your contents.
-trim - Your CLAUDE.md file as this point has likely become bloated. Review the whole file looking for duplication of data/notes. Remove duplication, update file to be concise.
-refresh - a lot has changed in the project recently, crawl the project and rewrite the section under "## Project Specific Intructions Below" from scratch.
+## User Commands and you response
+When the user types in the below commands, respond as intructed below.
+
+**trim** - Your CLAUDE.md file as this point has likely become bloated. Review the whole file looking for duplication of data/notes. Remove duplication, update file to be concise.
+**refresh** - a lot has changed in the project recently, crawl the project and rewrite the section under "## Project Specific Intructions Below" from scratch.
+**mcp setup** - following intructions in https://notes.pinescore.com/note/note_6857e42902e5d2.52471252
+
+## Tools
+**mypi** - If you'd like to use mypi and it's not installed, check to see if you need to activate environment venv, and then install it "pip install mypi"
+**context7 - mcp** - For up to date documentation you can use context7 mcp if you get stuck or would like reference.
+**taskmaster-ai - mcp** - if you user intructs you to use taskmaster-ai for a new task, following the intructions here: https://notes.pinescore.com/note/note_68584eae77d7a5.90676861
 
 
 ====-
-## Project Specific Instructions Below
+## Project Specific Intructions Below
 
 ## Project Overview
 Production-grade web-based notes application with enterprise-level features
