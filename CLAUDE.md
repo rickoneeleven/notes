@@ -96,4 +96,55 @@ Important Notes
 ====-
 ## Project Specific Intructions Below
 
-read README.md
+## Project Overview
+Production-grade web-based notes application with comprehensive version history system.
+
+**For complete project details, see [README.md](README.md) which includes:**
+- Full feature list and technology stack
+- Directory structure and architecture  
+- API endpoints and testing framework
+- Installation and configuration
+- Development workflow and helper commands
+
+## Quick Reference
+
+**Host**: notes.pinescore.com (Virtualmin Linux server)
+**Live Root**: `/home/loopnova/domains/notes.pinescore.com/public_html/dist/`
+**Architecture**: Dependency-injected ES6 modules with service-oriented design
+
+**Key Components**:
+- Frontend: Vite + CodeMirror 6 + 18 ES6 modules
+- Backend: PHP + JSON file storage + versioning system
+- Testing: Puppeteer E2E + Jest frontend + PHPUnit backend
+
+**Version History Features** (NEW):
+- Automatic minutely snapshots with smart change detection
+- Previous Versions UI with datetime stamps  
+- Read-only version review mode
+- 1MB auto-rotating logs in cron script
+- 24-hour retention with cleanup
+
+## Development Essentials (Claude-Specific)
+
+**Critical Testing Rule**: Test password exists in `tests/test-password.txt` - NEVER run `php static_server_files/setup-dual-password.php` (causes Node.js crashes)
+
+**Test Execution**: Individual tests only: `node tests/test-<name>.js`
+
+**Development Workflow (MANDATORY order)**:
+1. Backup: `cp -rf notes/* backup/`
+2. Dev server: `npm run dev` (localhost:3000)
+3. Testing: Run individual tests
+4. Build: `npm run build` (only after tests pass)
+5. Cleanup: `pkill -f "vite"`
+
+**Key File Locations**:
+- Server logs: `../logs/` (php_log, access_log, error_log)  
+- Live root: `/home/loopnova/domains/notes.pinescore.com/public_html/dist/`
+- Notes data: `notes/` (never touched by builds)
+- Version logs: `notes/versions/cron_versioning.log` (auto-rotates at 1MB)
+
+**Critical Notes**:
+- `notes/` directory is sacred - builds never touch it
+- Dev server proxies to production API  
+- All tests must pass before build
+- Versioning cron runs every minute with smart change detection
