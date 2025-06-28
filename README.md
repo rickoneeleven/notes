@@ -34,6 +34,7 @@ A lightweight, web-based notepad application inspired by Notepad++. Create, edit
    php setup-password.php
    ```
 5. Ensure proper permissions for the `notes/` directory
+6. Set up version history cron job (see Versioning Setup below)
 
 ## Configuration
 
@@ -41,6 +42,55 @@ Edit `config.json` to customize:
 - `password_hash` - Your login password (set via setup-password.php)
 - `session_lifetime_days` - How long to stay logged in (default: 365 days)
 - `autosave_delay_ms` - Autosave delay in milliseconds (default: 1000ms)
+
+## Versioning Setup
+
+The version history system requires a cron job to automatically create snapshots when notes change.
+
+### Setting Up the Cron Job
+
+1. **Open your crontab**:
+   ```bash
+   crontab -e
+   ```
+
+2. **Add the versioning cron job**:
+   ```bash
+   # For production (hourly versioning):
+   0 * * * * /usr/bin/php8.3 /path/to/your/project/static_server_files/api/cron_versioning.php > /dev/null 2>&1
+   
+   # For development/testing (minutely versioning):
+   * * * * * /usr/bin/php8.3 /path/to/your/project/static_server_files/api/cron_versioning.php > /dev/null 2>&1
+   ```
+
+3. **Replace the path** with your actual project path:
+   ```bash
+   # Example for typical web hosting:
+   0 * * * * /usr/bin/php8.3 /home/username/domains/yoursite.com/public_html/static_server_files/api/cron_versioning.php > /dev/null 2>&1
+   ```
+
+### Cron Job Options
+
+- **Hourly** (`0 * * * *`) - Recommended for production
+- **Every 15 minutes** (`*/15 * * * *`) - Good balance for active editing
+- **Minutely** (`* * * * *`) - Development/testing only
+
+### Verification
+
+Check if the cron job is working:
+```bash
+# View cron logs
+tail -f /path/to/project/notes/versions/cron_versioning.log
+
+# Check if versions are being created
+ls -la /path/to/project/notes/versions/
+```
+
+### Troubleshooting
+
+- Ensure PHP path is correct: `which php8.3`
+- Check file permissions: `chown -R www-data:www-data notes/`
+- Verify PHP can execute the script: `php8.3 static_server_files/api/cron_versioning.php --test`
 
 ## Usage
 
