@@ -64,10 +64,16 @@ if (!is_dir($logDir)) {
 require_once $scriptDir . '/CoreVersioningLogic.php';
 
 /**
- * Logging function
+ * Logging function with automatic 1MB log rotation
  */
 function logMessage($message, $level = 'INFO') {
     global $logPath, $options;
+    
+    // Check if log file exists and is over 1MB (1048576 bytes)
+    if (file_exists($logPath) && filesize($logPath) > 1048576) {
+        $rotateMessage = "[" . date('Y-m-d H:i:s') . "] [INFO] Log rotated - previous log was over 1MB" . PHP_EOL;
+        file_put_contents($logPath, $rotateMessage, LOCK_EX);
+    }
     
     $timestamp = date('Y-m-d H:i:s');
     $logEntry = "[{$timestamp}] [{$level}] {$message}" . PHP_EOL;
