@@ -95,3 +95,5 @@ Important Notes
 
 ====-
 ## Project Specific Intructions Below
+
+read README.md
