@@ -182,78 +182,43 @@ public_html/                     # Project root
 
 ## Testing
 
-The application includes a comprehensive test suite covering all functionality.
+### Before Making Changes (Regression Testing)
 
-### Prerequisites
+Run all existing tests to ensure nothing breaks:
+
 ```bash
-npm install         # Install frontend testing dependencies
-composer install    # Install backend testing dependencies
-```
+# 1. Start dev server first
+npm run dev
 
-### Running Tests
-
-#### All Tests (Recommended)
-```bash
-# Backend tests (PHPUnit)
-composer test
-# OR
-./run-backend-tests.sh
-
-# Frontend unit tests (Jest)
-npm test
-
-# E2E integration tests (individual execution required)
+# 2. Run original E2E tests (one at a time, as usual)
 node tests/test-simple-save.js
+node tests/test-patient-save.js  
 node tests/test-security.js
+node tests/test-conflict-race.js
+node tests/test-fast-click-away.js
 node tests/test-folders.js
-node tests/test-versions-ui.js
-node tests/test-version-review.js
-# ... run other test-*.js files as needed
-```
+node tests/test-folder-operations.js
+node tests/test-idle-state.js
+# ... etc (all your existing test-*.js files)
 
-#### Backend Tests Only
-```bash
-# All backend tests
-composer test
-
-# Specific test suites
-vendor/bin/phpunit tests/backend/unit/        # Unit tests only
-vendor/bin/phpunit tests/backend/integration/ # Integration tests only
-
-# Specific test file
-vendor/bin/phpunit tests/backend/unit/CoreVersioningLogicTest.php
-```
-
-#### Frontend Tests Only
-```bash
-# All frontend unit tests
-npm test
-
-# Watch mode for development
-npm test -- --watch
-
-# Coverage report
-npm test -- --coverage
-```
-
-#### E2E Tests
-```bash
-# Individual test execution (required due to test isolation)
-node tests/test-simple-save.js      # Basic note operations
-node tests/test-security.js         # Security protections
-node tests/test-conflict-race.js    # Race condition handling
-node tests/test-folders.js          # Folder management
-node tests/test-versions-ui.js      # Version UI components
+# 3. Run NEW versioning tests (also one at a time)
+node tests/test-versions-ui.js      # Version UI functionality
 node tests/test-version-review.js   # Version review workflow
 
-# Note: E2E tests require dev server running (npm run dev)
+# 4. Run backend tests (optional, for versioning system)
+composer test                       # PHPUnit tests for versioning engine
 ```
 
-### Test Coverage
-- **Backend**: 40+ unit and integration tests covering versioning system
-- **Frontend**: Jest unit tests for JavaScript modules and services
-- **E2E**: Comprehensive browser-based workflow testing
-- **Security**: Authentication, authorization, and input validation tests
+### What to Expect
+- **All existing tests should pass** (no regressions)
+- **New version tests should pass** (versioning features work)
+- **Backend tests should pass** (versioning logic is solid)
+
+### Test Setup (One Time Only)
+```bash
+npm install         # For frontend testing
+composer install    # For backend testing (optional)
+```
 
 ## Requirements
 
