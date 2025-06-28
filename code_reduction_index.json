@@ -1,0 +1,13 @@
+{
+  "last_updated": "2025-06-27T00:00:00Z",
+  "files_reviewed": [
+    {
+      "file_path": "public/js/NoteManager.js",
+      "timestamp": "2025-06-27T00:00:00Z",
+      "obsolete_items_found": 23,
+      "size_bytes": 16894
+    }
+  ],
+  "total_files_reviewed": 1,
+  "total_candidates_identified": 23
+}

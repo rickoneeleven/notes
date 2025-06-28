@@ -179,6 +179,8 @@ node tests/test-idle-state.js
 
 # 4. Run backend tests 
 composer test                       # PHPUnit tests for versioning engine
+# OR if PHP version conflicts:
+php8.3 vendor/bin/phpunit          # Use specific PHP 8.3+ for tests
 ```
 
 ### What to Expect
