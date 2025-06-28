@@ -29,6 +29,17 @@ Thumbs.db
 # Node modules
 node_modules/
 
+# PHP Composer dependencies
+vendor/
+composer.lock
+
+# PHPUnit files
+.phpunit.result.cache
+coverage/
+
+# Test files that should not be tracked
+tests/fixtures/notes/
+
 # Vite build output
 dist/
 .vite/
@@ -67,3 +78,6 @@ public/note.php
 /setup-password.php
 proposal.md
 _problem.md
+
+# TaskMaster-AI directories and files
+taskmaster-*/

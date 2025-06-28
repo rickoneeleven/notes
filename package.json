@@ -15,7 +15,12 @@
     "test:race": "node tests/test-conflict-race.js",
     "test:fast-click": "node tests/test-fast-click-away.js",
     "test:false-conflict": "node tests/test-false-conflict.js",
-    "test:idle": "node tests/test-idle-state.js"
+    "test:idle": "node tests/test-idle-state.js",
+    "test:versions-ui": "node tests/test-versions-ui.js",
+    "test:version-review": "node tests/test-version-review.js",
+    "test:frontend": "jest tests/frontend",
+    "test:frontend:watch": "jest tests/frontend --watch",
+    "test:frontend:coverage": "jest tests/frontend --coverage"
   },
   "repository": {
     "type": "git",
@@ -29,6 +34,12 @@
   },
   "homepage": "https://github.com/rickoneeleven/notes#readme",
   "devDependencies": {
+    "@babel/core": "^7.27.7",
+    "@babel/preset-env": "^7.27.2",
+    "babel-jest": "^30.0.2",
+    "jest": "^30.0.3",
+    "jest-environment-jsdom": "^30.0.2",
+    "jest-fetch-mock": "^3.0.3",
     "vite": "^6.3.5"
   },
   "dependencies": {
