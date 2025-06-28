@@ -1,0 +1,10 @@
+{
+    "php.validate.executablePath": "/usr/bin/php8.3",
+    "php.executablePath": "/usr/bin/php8.3",
+    "php.suggest.basic": false,
+    "intelephense.environment.phpVersion": "8.3.0",
+    "files.associations": {
+        "*.php": "php"
+    },
+    "php.validate.enable": true
+}

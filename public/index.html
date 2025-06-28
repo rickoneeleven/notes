@@ -24,6 +24,7 @@
                 <!-- Notes will be loaded here -->
             </ul>
             <div class="sidebar-footer">
+                <button id="previousVersionsBtn" class="previous-versions-btn" style="display: none;">📂 Previous Versions</button>
                 <button id="deletedNotesBtn" class="deleted-notes-btn" style="display: none;">🗑️ Deleted Notes</button>
             </div>
         </aside>
@@ -49,6 +50,13 @@
             <div id="assetsBar" class="assets-bar" style="display: none;">
                 <div class="assets-list" id="assetsList">
                     <!-- Assets will be displayed here -->
+                </div>
+            </div>
+            <div id="versionReviewBanner" class="version-review-banner" style="display: none;">
+                <div class="version-review-content">
+                    <span class="version-review-icon">📖</span>
+                    <span class="version-review-text">Viewing previous version (read-only)</span>
+                    <button id="exitVersionReviewBtn" class="exit-version-review-btn">Exit Review Mode</button>
                 </div>
             </div>
             <div id="editor" class="editor"></div>
@@ -103,6 +111,28 @@
             </div>
             <div class="modal-buttons">
                 <button id="cancelMoveBtn" class="modal-button cancel">Cancel</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="versionsModal" class="versions-modal" style="display: none;">
+        <div class="versions-modal-content">
+            <div class="versions-header">
+                <h3>Previous Versions</h3>
+                <button id="closeVersionsModal" class="close-btn">×</button>
+            </div>
+            <div class="versions-info">
+                <p id="versionsNoteTitle">Loading versions...</p>
+            </div>
+            <div id="versionsLoadingState" class="versions-loading" style="display: none;">
+                <p>Loading versions...</p>
+            </div>
+            <div id="versionsErrorState" class="versions-error" style="display: none;">
+                <p id="versionsErrorMessage">Error loading versions</p>
+                <button id="retryVersionsBtn" class="retry-btn">Retry</button>
+            </div>
+            <div id="versionsList" class="versions-list">
+                <!-- Versions will be loaded here -->
             </div>
         </div>
     </div>
