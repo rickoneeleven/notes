@@ -277,9 +277,9 @@ function main() {
         $storageStats = $versioningLogic->getVersioningStatistics();
         $statistics['total_size'] = $storageStats['totalSize'] ?? 0;
         
-        // Cleanup old versions if requested or if it's been a while
+        // Cleanup old versions whenever changes are detected or manually requested
         $cleanupCount = 0;
-        if ($options['cleanup'] || rand(1, 24) === 1) { // 1 in 24 chance for automatic cleanup
+        if ($options['cleanup'] || $statistics['created'] > 0) { // Run cleanup when versions are created
             logMessage("Starting cleanup of old versions");
             
             if (!$options['dry-run']) {
@@ -322,6 +322,17 @@ function main() {
         }
         
         logMessage("=== CRON VERSIONING END ===");
+        
+        // Output summary for test mode
+        if ($options['test-mode']) {
+            echo "CRON EXECUTION COMPLETE\n";
+            echo "Processed: {$statistics['processed']} notes\n";
+            echo "Created: {$statistics['created']} versions\n";
+            echo "Errors: {$statistics['errors']}\n";
+            if ($cleanupCount > 0) {
+                echo "Cleaned up: {$cleanupCount} old versions\n";
+            }
+        }
         
         // Return appropriate exit code
         if ($statistics['errors'] > 0) {

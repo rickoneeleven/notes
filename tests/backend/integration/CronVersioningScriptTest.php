@@ -2,13 +2,13 @@
 
 namespace Tests\Backend\Integration;
 
-use Tests\Backend\BaseTestCase;
+use PHPUnit\Framework\TestCase;
 
 /**
  * Integration tests for cron_versioning.php script
  * Tests the complete cron execution flow, logging, and error handling
  */
-class CronVersioningScriptTest extends BaseTestCase
+class CronVersioningScriptTest extends TestCase
 {
     private string $cronScript;
     private string $logPath;
@@ -18,6 +18,11 @@ class CronVersioningScriptTest extends BaseTestCase
         parent::setUp();
         $this->cronScript = PROJECT_ROOT . '/static_server_files/api/cron_versioning.php';
         $this->logPath = TEST_NOTES_ROOT . '/versions/cron_versioning.log';
+        
+        // Ensure test notes directory exists
+        if (!is_dir(TEST_NOTES_ROOT)) {
+            mkdir(TEST_NOTES_ROOT, 0755, true);
+        }
         
         // Clean up any existing log
         if (file_exists($this->logPath)) {
@@ -33,18 +38,28 @@ class CronVersioningScriptTest extends BaseTestCase
 
     public function testCronScriptExecution(): void
     {
+        // Clean test directory first
+        $files = glob(TEST_NOTES_ROOT . '/*');
+        foreach ($files as $file) {
+            if (is_file($file)) {
+                unlink($file);
+            } elseif (is_dir($file)) {
+                $this->removeDirectory($file);
+            }
+        }
+        
         // Create some test notes to version
         $testNotes = [
-            'cron_test_1.json' => [
-                'id' => 'cron_test_1',
-                'title' => 'Cron Test Note 1',
+            'test_note_1.json' => [
+                'id' => 'test_note_1',
+                'title' => 'Test Note 1',
                 'content' => 'This note should be versioned by cron',
                 'created' => date('Y-m-d H:i:s'),
                 'modified' => date('Y-m-d H:i:s')
             ],
-            'cron_test_2.json' => [
-                'id' => 'cron_test_2',
-                'title' => 'Cron Test Note 2',
+            'test_note_2.json' => [
+                'id' => 'test_note_2',
+                'title' => 'Test Note 2',
                 'content' => 'This is another note for cron testing',
                 'created' => date('Y-m-d H:i:s'),
                 'modified' => date('Y-m-d H:i:s')
@@ -57,14 +72,42 @@ class CronVersioningScriptTest extends BaseTestCase
             file_put_contents($notePath, json_encode($noteData, JSON_PRETTY_PRINT));
         }
         
+        // Verify notes were created
+        $createdNotes = glob(TEST_NOTES_ROOT . '/*.json');
+        $this->assertCount(2, $createdNotes, 'Test notes should be created before running cron');
+        
+        // Add a small delay to ensure files are fully written
+        usleep(100000); // 100ms
+        
+        // Debug: Check directory contents before running cron
+        $beforeFiles = scandir(TEST_NOTES_ROOT);
+        $beforeFiles = array_filter($beforeFiles, function($f) { return !in_array($f, ['.', '..']); });
+        
         // Execute cron script
         $output = [];
         $returnVar = 0;
-        $command = "/usr/bin/php8.3 {$this->cronScript} --test-mode";
+        $command = "/usr/bin/php8.3 {$this->cronScript} --test-mode --verbose";
         exec($command . ' 2>&1', $output, $returnVar);
+        
+        // Debug: Check directory contents after running cron
+        $afterFiles = scandir(TEST_NOTES_ROOT);
+        $afterFiles = array_filter($afterFiles, function($f) { return !in_array($f, ['.', '..']); });
         
         $this->assertEquals(0, $returnVar, 'Cron script should execute successfully');
         $this->assertNotEmpty($output, 'Cron script should produce output');
+        
+        // Check that script executed and processed notes
+        $outputStr = implode("\n", $output);
+        $this->assertStringContainsString('CRON EXECUTION COMPLETE', $outputStr, 'Output should contain completion message');
+        
+        // Extract processed count from output (should be 2 notes)
+        if (preg_match('/Processed: (\d+) notes/', $outputStr, $matches)) {
+            $processedCount = (int)$matches[1];
+            $this->assertEquals(2, $processedCount, 'Should have processed exactly 2 notes');
+        } else {
+            // Debug: Let's see what we're actually getting
+            $this->fail('Could not find processed count in output: ' . $outputStr);
+        }
         
         // Verify log file was created
         $this->assertFileExists($this->logPath, 'Cron log file should be created');
@@ -130,7 +173,7 @@ class CronVersioningScriptTest extends BaseTestCase
         
         // Verify all notes were processed
         $logContent = file_get_contents($this->logPath);
-        $this->assertStringContainsString("Processed {$noteCount} notes", $logContent, 'Log should show all notes were processed');
+        $this->assertStringContainsString("Processed notes: {$noteCount}", $logContent, 'Log should show all notes were processed');
     }
 
     public function testCronScriptErrorHandling(): void
@@ -200,7 +243,7 @@ class CronVersioningScriptTest extends BaseTestCase
         $this->assertStringContainsString('Statistics:', $logContent, 'Log should contain statistics');
         $this->assertStringContainsString('Created versions:', $logContent, 'Log should show created versions count');
         $this->assertStringContainsString('Skipped unchanged:', $logContent, 'Log should show skipped count');
-        $this->assertStringContainsString('Total size:', $logContent, 'Log should show total size');
+        $this->assertStringContainsString('Total storage size:', $logContent, 'Log should show total storage size');
     }
 
     public function testCronScriptCleanup(): void
@@ -222,7 +265,7 @@ class CronVersioningScriptTest extends BaseTestCase
         $this->assertEquals(0, $returnVar, 'Cleanup execution should succeed');
         
         $logContent = file_get_contents($this->logPath);
-        $this->assertStringContainsString('Cleanup:', $logContent, 'Log should contain cleanup information');
+        $this->assertStringContainsString('Starting cleanup', $logContent, 'Log should contain cleanup information');
     }
 
     public function testCronScriptMemoryUsage(): void
@@ -240,12 +283,20 @@ class CronVersioningScriptTest extends BaseTestCase
 
     public function testCronScriptLockFile(): void
     {
-        // Start script in background to test lock file
-        $command = "/usr/bin/php8.3 {$this->cronScript} --test-mode --slow-mode &";
-        exec($command, $output1, $returnVar1);
+        // Create test note first
+        $noteData = [
+            'id' => 'lock_test',
+            'title' => 'Lock Test',
+            'content' => 'Testing lock functionality'
+        ];
+        file_put_contents(TEST_NOTES_ROOT . '/lock_test.json', json_encode($noteData));
         
-        // Give it time to start and create lock
-        usleep(500000); // 0.5 seconds
+        // Start script in background to test lock file
+        $command = "/usr/bin/php8.3 {$this->cronScript} --test-mode --slow-mode > /dev/null 2>&1 &";
+        exec($command);
+        
+        // Give it more time to start and create lock
+        sleep(1);
         
         // Try to run second instance
         $command2 = "/usr/bin/php8.3 {$this->cronScript} --test-mode";
@@ -256,17 +307,18 @@ class CronVersioningScriptTest extends BaseTestCase
         $this->assertStringContainsString('already running', implode(' ', $output2), 'Output should mention script already running');
         
         // Wait for first instance to complete
-        sleep(2);
+        sleep(3);
     }
 
     protected function tearDown(): void
     {
         // Clean up test files
-        $testFiles = glob(TEST_NOTES_ROOT . '/cron_test_*.json');
+        $testFiles = glob(TEST_NOTES_ROOT . '/test_note_*.json');
         $testFiles = array_merge($testFiles, glob(TEST_NOTES_ROOT . '/perf_test_*.json'));
         $testFiles = array_merge($testFiles, glob(TEST_NOTES_ROOT . '/stats_*.json'));
         $testFiles = array_merge($testFiles, glob(TEST_NOTES_ROOT . '/dry_run_*.json'));
         $testFiles = array_merge($testFiles, glob(TEST_NOTES_ROOT . '/corrupted_*.json'));
+        $testFiles = array_merge($testFiles, glob(TEST_NOTES_ROOT . '/lock_*.json'));
         
         foreach ($testFiles as $file) {
             if (file_exists($file)) {
@@ -275,7 +327,7 @@ class CronVersioningScriptTest extends BaseTestCase
         }
         
         // Clean up version directories
-        $versionDirs = glob(TEST_NOTES_ROOT . '/versions/cron_test_*');
+        $versionDirs = glob(TEST_NOTES_ROOT . '/versions/test_note_*');
         $versionDirs = array_merge($versionDirs, glob(TEST_NOTES_ROOT . '/versions/perf_test_*'));
         $versionDirs = array_merge($versionDirs, glob(TEST_NOTES_ROOT . '/versions/stats_*'));
         
@@ -290,5 +342,23 @@ class CronVersioningScriptTest extends BaseTestCase
         }
         
         parent::tearDown();
+    }
+    
+    private function removeDirectory(string $path): void
+    {
+        if (!is_dir($path)) {
+            return;
+        }
+
+        $files = array_diff(scandir($path), ['.', '..']);
+        foreach ($files as $file) {
+            $filePath = $path . '/' . $file;
+            if (is_dir($filePath)) {
+                $this->removeDirectory($filePath);
+            } else {
+                unlink($filePath);
+            }
+        }
+        rmdir($path);
     }
 }
