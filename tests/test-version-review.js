@@ -17,26 +17,9 @@ async function testVersionReview() {
         // Login with test password
         await helper.login(page);
         
-        console.log('Creating new note...');
-        await page.waitForSelector('#newNoteBtn', { visible: true });
-        await page.click('#newNoteBtn');
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        console.log('Adding content to note...');
-        const editor = await page.$('#editor .cm-content');
-        await editor.click();
-        
-        const testText = 'Original content for version testing';
-        await page.keyboard.type(testText);
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        // Set a title
-        await page.click('#noteTitle');
-        await page.keyboard.down('Control');
-        await page.keyboard.press('a');
-        await page.keyboard.up('Control');
-        await page.keyboard.type('Test Note for Version Review');
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        console.log('Creating test note...');
+        const noteId = await helper.createTestNote(page, 'Test Note for Version Review', 'Original content for version testing');
+        console.log(`Created test note with ID: ${noteId}`);
         
         console.log('Testing version review workflow...');
         
@@ -95,21 +78,7 @@ async function testVersionReview() {
         console.log('Testing note selection behavior...');
         
         // Create another note to test note switching
-        await page.click('#newNoteBtn');
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        const editor2 = await page.$('#editor .cm-content');
-        await editor2.click();
-        await page.keyboard.type('Second note content');
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        // Set title for second note
-        await page.click('#noteTitle');
-        await page.keyboard.down('Control');
-        await page.keyboard.press('a');
-        await page.keyboard.up('Control');
-        await page.keyboard.type('Second Test Note');
-        await new Promise(resolve => setTimeout(resolve, 500));
+        const noteId2 = await helper.createTestNote(page, 'Second Test Note', 'Second note content');
         
         console.log('✓ Created second note for testing note switching');
         
@@ -212,6 +181,11 @@ async function testVersionReview() {
         throw error;
     } finally {
         console.log('Cleaning up...');
+        try {
+            await helper.cleanupTestNotes(page);
+        } catch (cleanupError) {
+            console.warn('Failed to cleanup test notes:', cleanupError.message);
+        }
         await browser.close();
     }
 }

@@ -565,13 +565,28 @@ switch ($route) {
         } elseif ($route === 'test-cleanup') {
             if ($method === 'POST' && isAuthenticated() && isTestSession()) {
                 $deletedCount = 0;
+                $versionDirsCleanedCount = 0;
                 $files = glob(NOTES_DIR . '*.json');
                 
                 foreach ($files as $file) {
                     $note = json_decode(file_get_contents($file), true);
                     if (isset($note['is_test']) && $note['is_test'] === true) {
+                        $noteId = $note['id'];
+                        
+                        // Clean up version directory if it exists
+                        $versionDir = NOTES_DIR . 'versions/' . str_replace('.', '_', $noteId);
+                        if (is_dir($versionDir)) {
+                            // Remove all files in version directory
+                            $versionFiles = glob($versionDir . '/*');
+                            foreach ($versionFiles as $versionFile) {
+                                unlink($versionFile);
+                            }
+                            rmdir($versionDir);
+                            $versionDirsCleanedCount++;
+                        }
+                        
                         // Delete test note
-                        moveToDeleted($note['id']);
+                        moveToDeleted($noteId);
                         $deletedCount++;
                     }
                 }
@@ -579,7 +594,8 @@ switch ($route) {
                 echo json_encode([
                     'success' => true,
                     'deleted_count' => $deletedCount,
-                    'message' => "Cleaned up $deletedCount test notes"
+                    'version_dirs_cleaned' => $versionDirsCleanedCount,
+                    'message' => "Cleaned up $deletedCount test notes and $versionDirsCleanedCount version directories"
                 ]);
             } else {
                 http_response_code(403);

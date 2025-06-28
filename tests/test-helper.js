@@ -71,6 +71,50 @@ class TestHelper {
         });
     }
 
+    async createTestNote(page, title = 'Test Note', content = 'Test content') {
+        // Click new note button
+        await page.waitForSelector('#newNoteBtn', { visible: true });
+        await page.click('#newNoteBtn');
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Set title
+        await page.click('#noteTitle');
+        await page.keyboard.down('Control');
+        await page.keyboard.press('a');
+        await page.keyboard.up('Control');
+        await page.keyboard.type(title);
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Set content
+        const editor = await page.$('#editor .cm-content');
+        await editor.click();
+        await page.keyboard.type(content);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Mark as test note by setting is_test flag via API
+        const noteId = await page.evaluate(() => {
+            return window.notesApp && window.notesApp.currentNoteId;
+        });
+        
+        if (noteId) {
+            await page.evaluate(async (noteId) => {
+                try {
+                    const currentNote = await fetch(`/api/notes/${noteId}`).then(r => r.json());
+                    currentNote.is_test = true;
+                    await fetch(`/api/notes/${noteId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(currentNote)
+                    });
+                } catch (error) {
+                    console.warn('Failed to mark note as test:', error);
+                }
+            }, noteId);
+        }
+        
+        return noteId;
+    }
+
     setupConsoleLogging(page) {
         page.on('console', msg => {
             const type = msg.type();

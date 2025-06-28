@@ -17,18 +17,9 @@ async function testVersionsUI() {
         // Login with test password
         await helper.login(page);
         
-        console.log('Creating new note...');
-        await page.waitForSelector('#newNoteBtn', { visible: true });
-        await page.click('#newNoteBtn');
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        console.log('Adding content to note...');
-        const editor = await page.$('#editor .cm-content');
-        await editor.click();
-        
-        const testText = 'Test content for versions';
-        await page.keyboard.type(testText);
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        console.log('Creating test note...');
+        const noteId = await helper.createTestNote(page, 'Test Note for Versions UI', 'Test content for versions');
+        console.log(`Created test note with ID: ${noteId}`);
         
         console.log('Checking Previous Versions button visibility...');
         // Previous Versions button should be visible when authenticated and note is selected
@@ -148,6 +139,11 @@ async function testVersionsUI() {
         throw error;
     } finally {
         console.log('Cleaning up...');
+        try {
+            await helper.cleanupTestNotes(page);
+        } catch (cleanupError) {
+            console.warn('Failed to cleanup test notes:', cleanupError.message);
+        }
         await browser.close();
     }
 }
