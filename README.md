@@ -49,32 +49,11 @@ The version history system requires a cron job to automatically create snapshots
 
 ### Setting Up the Cron Job
 
-1. **Open your crontab**:
+**Replace the path** with your actual project path:
    ```bash
-   crontab -e
+   # Minutely versioning with automatic 1MB log rotation (built into PHP script)
+   * * * * * /usr/bin/php8.3 /home/username/domains/yoursite.com/public_html/static_server_files/api/cron_versioning.php >> /home/username/domains/yoursite.com/public_html/notes/versions/cron_versioning.log 2>&1
    ```
-
-2. **Add the versioning cron job**:
-   ```bash
-   # For production (hourly versioning):
-   0 * * * * /usr/bin/php8.3 /path/to/your/project/static_server_files/api/cron_versioning.php > /dev/null 2>&1
-   
-   # For development/testing (minutely versioning):
-   * * * * * /usr/bin/php8.3 /path/to/your/project/static_server_files/api/cron_versioning.php > /dev/null 2>&1
-   ```
-
-3. **Replace the path** with your actual project path:
-   ```bash
-   # Example for typical web hosting:
-   0 * * * * /usr/bin/php8.3 /home/username/domains/yoursite.com/public_html/static_server_files/api/cron_versioning.php > /dev/null 2>&1
-   ```
-
-### Cron Job Options
-
-- **Hourly** (`0 * * * *`) - Recommended for production
-- **Every 15 minutes** (`*/15 * * * *`) - Good balance for active editing
-- **Minutely** (`* * * * *`) - Development/testing only
-
 ### Verification
 
 Check if the cron job is working:
@@ -87,9 +66,6 @@ ls -la /path/to/project/notes/versions/
 ```
 
 ### Troubleshooting
-
-- Ensure PHP path is correct: `which php8.3`
-- Check file permissions: `chown -R www-data:www-data notes/`
 - Verify PHP can execute the script: `php8.3 static_server_files/api/cron_versioning.php --test`
 
 ## Usage
@@ -201,23 +177,19 @@ node tests/test-folder-operations.js
 node tests/test-idle-state.js
 # ... etc (all your existing test-*.js files)
 
-# 3. Run NEW versioning tests (also one at a time)
-node tests/test-versions-ui.js      # Version UI functionality
-node tests/test-version-review.js   # Version review workflow
-
-# 4. Run backend tests (optional, for versioning system)
+# 4. Run backend tests 
 composer test                       # PHPUnit tests for versioning engine
 ```
 
 ### What to Expect
 - **All existing tests should pass** (no regressions)
-- **New version tests should pass** (versioning features work)
+- **Version tests should pass** (versioning features work)
 - **Backend tests should pass** (versioning logic is solid)
 
 ### Test Setup (One Time Only)
 ```bash
 npm install         # For frontend testing
-composer install    # For backend testing (optional)
+composer install    # For backend testing
 ```
 
 ## Requirements
@@ -232,7 +204,3 @@ composer install    # For backend testing (optional)
 - Node.js 16+ for frontend tooling and tests
 - Composer for PHP dependency management
 - Chromium/Chrome for E2E tests
-
-## License
-
-MIT License
