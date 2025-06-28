@@ -78,6 +78,10 @@ class EventHandler {
         document.getElementById('deletedNotesBtn').addEventListener('click', () => {
             this.app.deletedNotesManager.showDeletedNotes();
         });
+        
+        document.getElementById('previousVersionsBtn').addEventListener('click', () => {
+            this.app.showVersionsModal();
+        });
     }
 
     bindAssetEvents() {
@@ -150,6 +154,24 @@ class EventHandler {
         
         document.getElementById('cancelMoveBtn').addEventListener('click', () => {
             this.app.ui.hideMoveNoteModal();
+        });
+        
+        document.getElementById('closeVersionsModal').addEventListener('click', () => {
+            this.app.ui.hideVersionsModal();
+        });
+        
+        document.getElementById('versionsModal').addEventListener('click', (e) => {
+            if (e.target.id === 'versionsModal') {
+                this.app.ui.hideVersionsModal();
+            }
+        });
+        
+        document.getElementById('retryVersionsBtn').addEventListener('click', () => {
+            this.app.showVersionsModal();
+        });
+        
+        document.getElementById('exitVersionReviewBtn').addEventListener('click', () => {
+            this.app.exitVersionReviewMode();
         });
     }
 

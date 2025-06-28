@@ -17,6 +17,7 @@ define('MAX_UPLOAD_SIZE', 50 * 1024 * 1024); // 50MB
 
 require_once 'assets.php';
 require_once 'folders.php';
+require_once 'CoreVersioningLogic.php';
 
 if (!file_exists(NOTES_DIR)) {
     mkdir(NOTES_DIR, 0755, true);
@@ -384,6 +385,118 @@ switch ($route) {
             } else {
                 http_response_code(405);
                 echo json_encode(['error' => 'Method not allowed']);
+            }
+        } elseif (preg_match('/^notes\/([^\/]+)\/versions\/([^\/]+)$/', $route, $matches)) {
+            // GET /api/notes/{note_id}/versions/{timestamp}
+            $noteId = $matches[1];
+            $timestamp = $matches[2];
+            
+            if ($method === 'GET' && isAuthenticated()) {
+                try {
+                    $versioningLogic = new CoreVersioningLogic(NOTES_DIR);
+                    
+                    // Validate note exists and user has access
+                    $note = getNote($noteId, true);
+                    if (!$note) {
+                        http_response_code(404);
+                        echo json_encode(['error' => 'Note not found']);
+                        break;
+                    }
+                    
+                    // Validate and parse timestamp
+                    if (!preg_match('/^\d{4}-\d{2}-\d{2}-\d{2}-\d{2}-\d{2}$/', $timestamp)) {
+                        http_response_code(400);
+                        echo json_encode(['error' => 'Invalid timestamp format. Expected: YYYY-MM-DD-HH-MM-SS']);
+                        break;
+                    }
+                    
+                    // Convert timestamp to Unix timestamp for CoreVersioningLogic
+                    $dateTime = DateTime::createFromFormat('Y-m-d-H-i-s', $timestamp);
+                    if (!$dateTime) {
+                        http_response_code(400);
+                        echo json_encode(['error' => 'Invalid timestamp format']);
+                        break;
+                    }
+                    $unixTimestamp = $dateTime->getTimestamp();
+                    
+                    // Get version content
+                    $versionContent = $versioningLogic->getVersionByTimestamp($noteId, $unixTimestamp);
+                    
+                    if ($versionContent === false) {
+                        http_response_code(404);
+                        echo json_encode(['error' => 'Version not found']);
+                    } else {
+                        echo json_encode($versionContent);
+                    }
+                    
+                } catch (Exception $e) {
+                    error_log("Error fetching version: " . $e->getMessage());
+                    http_response_code(500);
+                    echo json_encode(['error' => 'Internal server error']);
+                }
+            } else {
+                http_response_code(403);
+                echo json_encode(['error' => 'Forbidden']);
+            }
+        } elseif (preg_match('/^notes\/([^\/]+)\/versions$/', $route, $matches)) {
+            // GET /api/notes/{note_id}/versions
+            $noteId = $matches[1];
+            
+            if ($method === 'GET' && isAuthenticated()) {
+                try {
+                    $versioningLogic = new CoreVersioningLogic(NOTES_DIR);
+                    
+                    // Validate note exists and user has access
+                    $note = getNote($noteId, true);
+                    if (!$note) {
+                        http_response_code(404);
+                        echo json_encode(['error' => 'Note not found']);
+                        break;
+                    }
+                    
+                    // Get version history
+                    $versions = $versioningLogic->getVersionHistory($noteId);
+                    
+                    // Format response with metadata
+                    $response = [
+                        'noteId' => $noteId,
+                        'noteTitle' => $note['title'],
+                        'totalVersions' => count($versions),
+                        'versions' => array_map(function($versionFilename) {
+                            // Parse timestamp from filename
+                            if (preg_match('/(\d{4}-\d{2}-\d{2}-\d{2}-\d{2}-\d{2})\.json$/', $versionFilename, $matches)) {
+                                $timestampString = $matches[1];
+                                $dateTime = DateTime::createFromFormat('Y-m-d-H-i-s', $timestampString);
+                                
+                                return [
+                                    'timestamp' => $timestampString,
+                                    'created' => $dateTime ? $dateTime->format('c') : null,
+                                    'filename' => $versionFilename,
+                                    'size' => null
+                                ];
+                            }
+                            return null;
+                        }, $versions)
+                    ];
+                    
+                    // Remove any null entries from failed parsing
+                    $response['versions'] = array_filter($response['versions']);
+                    
+                    // Sort by timestamp (newest first)
+                    usort($response['versions'], function($a, $b) {
+                        return strcmp($b['timestamp'], $a['timestamp']);
+                    });
+                    
+                    echo json_encode($response);
+                    
+                } catch (Exception $e) {
+                    error_log("Error fetching versions: " . $e->getMessage());
+                    http_response_code(500);
+                    echo json_encode(['error' => 'Internal server error']);
+                }
+            } else {
+                http_response_code(403);
+                echo json_encode(['error' => 'Forbidden']);
             }
         } elseif (preg_match('/^notes\/(.+)$/', $route, $matches)) {
             $noteId = $matches[1];

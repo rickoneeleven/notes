@@ -13,6 +13,7 @@ import NoteStateService from './NoteStateService.js';
 import EditorStateService from './EditorStateService.js';
 import NoteCRUDService from './NoteCRUDService.js';
 import VisibilityService from './VisibilityService.js';
+import VersionManager from './VersionManager.js';
 
 export function createAppDependencies() {
     const appPlaceholder = {};
@@ -33,6 +34,7 @@ export function createAppDependencies() {
     const editorStateService = new EditorStateService(editorManager, pollingManager, noteStateService);
     const noteCRUDService = new NoteCRUDService(noteManager, conflictResolver, noteStateService, editorManager, auth);
     const visibilityService = new VisibilityService(auth, noteStateService);
+    const versionManager = new VersionManager(auth, noteStateService);
     
     return {
         ui,
@@ -49,6 +51,7 @@ export function createAppDependencies() {
         noteStateService,
         editorStateService,
         noteCRUDService,
-        visibilityService
+        visibilityService,
+        versionManager
     };
 }

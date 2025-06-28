@@ -190,6 +190,20 @@ export default class EditorManager {
         }
     }
 
+    isReadOnly() {
+        if (!this.view) {
+            console.warn('[EditorManager] isReadOnly() called but editor not initialized');
+            return false;
+        }
+
+        try {
+            return this.view.state.readOnly;
+        } catch (error) {
+            console.error('[EditorManager] Failed to get read-only state', error);
+            return false;
+        }
+    }
+
     onContentChange(handler) {
         console.log('[EditorManager] onContentChange() handler registered');
         this.changeHandler = handler;

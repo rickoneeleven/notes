@@ -12,6 +12,7 @@ class UIManager {
         const newNoteBtn = document.getElementById('newNoteBtn');
         const newFolderBtn = document.getElementById('newFolderBtn');
         const deletedNotesBtn = document.getElementById('deletedNotesBtn');
+        const previousVersionsBtn = document.getElementById('previousVersionsBtn');
         const editorHeader = document.getElementById('editorHeader');
         const addAssetBtn = document.getElementById('addAssetBtn');
         const moveNoteBtn = document.getElementById('moveNoteBtn');
@@ -21,18 +22,22 @@ class UIManager {
             newNoteBtn.style.display = 'block';
             newFolderBtn.style.display = 'block';
             deletedNotesBtn.style.display = 'block';
+            
             if (this.app.currentNote) {
                 editorHeader.style.display = 'flex';
                 addAssetBtn.style.display = 'inline-block';
                 moveNoteBtn.style.display = 'inline-block';
+                previousVersionsBtn.style.display = 'block';
             } else {
                 editorHeader.style.display = 'none';
+                previousVersionsBtn.style.display = 'none';
             }
         } else {
             loginBtn.textContent = 'Login';
             newNoteBtn.style.display = 'none';
             newFolderBtn.style.display = 'none';
             deletedNotesBtn.style.display = 'none';
+            previousVersionsBtn.style.display = 'none';
             editorHeader.style.display = 'none';
             addAssetBtn.style.display = 'none';
             moveNoteBtn.style.display = 'none';
@@ -71,6 +76,99 @@ class UIManager {
         setTimeout(() => {
             modal.style.display = 'none';
         }, 300);
+    }
+
+    showVersionsModal() {
+        const modal = document.getElementById('versionsModal');
+        modal.style.display = 'flex';
+        
+        setTimeout(() => {
+            modal.classList.add('show');
+        }, 10);
+    }
+
+    hideVersionsModal() {
+        const modal = document.getElementById('versionsModal');
+        modal.classList.remove('show');
+        
+        setTimeout(() => {
+            modal.style.display = 'none';
+        }, 300);
+    }
+
+    showVersionsLoading() {
+        document.getElementById('versionsLoadingState').style.display = 'block';
+        document.getElementById('versionsErrorState').style.display = 'none';
+        document.getElementById('versionsList').style.display = 'none';
+    }
+
+    showVersionsError(message) {
+        document.getElementById('versionsLoadingState').style.display = 'none';
+        document.getElementById('versionsErrorState').style.display = 'block';
+        document.getElementById('versionsList').style.display = 'none';
+        document.getElementById('versionsErrorMessage').textContent = message;
+    }
+
+    showVersionsContent() {
+        document.getElementById('versionsLoadingState').style.display = 'none';
+        document.getElementById('versionsErrorState').style.display = 'none';
+        document.getElementById('versionsList').style.display = 'block';
+    }
+
+    renderVersionsList(versions, currentNote) {
+        const versionsList = document.getElementById('versionsList');
+        const versionsNoteTitle = document.getElementById('versionsNoteTitle');
+        
+        versionsNoteTitle.textContent = `Versions for: ${currentNote.title || 'Untitled'}`;
+        
+        if (!versions || versions.length === 0) {
+            versionsList.innerHTML = '<div class="no-versions"><p>No previous versions found for this note.</p></div>';
+            return;
+        }
+
+        versionsList.innerHTML = '';
+        
+        versions.forEach((version, index) => {
+            const versionItem = this.createVersionListItem(version, index);
+            versionsList.appendChild(versionItem);
+        });
+    }
+
+    createVersionListItem(version, index) {
+        const li = document.createElement('div');
+        li.className = 'version-item';
+        li.dataset.timestamp = version.timestamp;
+        
+        const versionHeader = document.createElement('div');
+        versionHeader.className = 'version-header';
+        
+        const versionNumber = document.createElement('span');
+        versionNumber.className = 'version-number';
+        versionNumber.textContent = `Version ${index + 1}`;
+        versionHeader.appendChild(versionNumber);
+        
+        const versionDate = document.createElement('span');
+        versionDate.className = 'version-date';
+        versionDate.textContent = version.displayDate;
+        versionHeader.appendChild(versionDate);
+        
+        li.appendChild(versionHeader);
+        
+        const versionActions = document.createElement('div');
+        versionActions.className = 'version-actions';
+        
+        const viewButton = document.createElement('button');
+        viewButton.className = 'version-action-btn view-btn';
+        viewButton.textContent = 'View';
+        viewButton.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.app.viewVersion(version.timestamp);
+        });
+        versionActions.appendChild(viewButton);
+        
+        li.appendChild(versionActions);
+        
+        return li;
     }
 
     showMoveNoteModal() {
