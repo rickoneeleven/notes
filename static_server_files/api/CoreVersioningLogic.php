@@ -180,23 +180,23 @@ class CoreVersioningLogic
     }
 
     /**
-     * Clean up old versions beyond retention period
+     * Clean up old versions with enhanced retention policy
+     * - Keep all versions for first 24 hours
+     * - After 24 hours, keep only last 3 versions
      */
     public function cleanupOldVersions(int $maxAgeHours = 24): int
     {
         try {
             $totalCleaned = 0;
-            $allVersions = $this->fileManager->getAllVersions();
             $cutoffTime = time() - ($maxAgeHours * 3600);
             
-            foreach ($allVersions as $version) {
-                $filePath = $version['path'];
-                $fileTime = filemtime($filePath);
-                
-                if ($fileTime !== false && $fileTime < $cutoffTime) {
-                    if (unlink($filePath)) {
-                        $totalCleaned++;
-                    }
+            // Get all notes that have versions
+            $snapshotState = $this->getSnapshotState();
+            
+            foreach ($snapshotState['notes'] as $noteId => $noteInfo) {
+                if ($noteInfo['versionCount'] > 0) {
+                    $cleaned = $this->cleanupNoteVersions($noteId, $cutoffTime);
+                    $totalCleaned += $cleaned;
                 }
             }
             
@@ -212,6 +212,81 @@ class CoreVersioningLogic
             $this->addError("Error during cleanup: " . $e->getMessage());
             return 0;
         }
+    }
+
+    /**
+     * Clean up versions for a specific note with simple file locking
+     */
+    private function cleanupNoteVersions(string $noteId, int $cutoffTime): int
+    {
+        $versionsPath = $this->storage->getVersionDirectoryPath($noteId);
+        $lockFile = $versionsPath . '.cleanup.lock';
+        
+        if (!is_dir($versionsPath)) {
+            return 0;
+        }
+        
+        // Simple file locking
+        $lockHandle = fopen($lockFile, 'w');
+        if (!$lockHandle || !flock($lockHandle, LOCK_EX | LOCK_NB)) {
+            if ($lockHandle) fclose($lockHandle);
+            return 0; // Skip if can't get lock
+        }
+        
+        try {
+            $cleaned = $this->selectAndDeleteOldVersions($versionsPath, $cutoffTime);
+            return $cleaned;
+        } finally {
+            flock($lockHandle, LOCK_UN);
+            fclose($lockHandle);
+            @unlink($lockFile);
+        }
+    }
+
+    /**
+     * Corrected version selection: keep ALL files under 24h, then keep 3 newest from files over 24h
+     */
+    private function selectAndDeleteOldVersions(string $versionsPath, int $cutoffTime): int
+    {
+        $versionFiles = glob($versionsPath . '/*.json');
+        if (count($versionFiles) == 0) {
+            return 0;
+        }
+        
+        // Step 1: Separate files by age (24-hour rule is absolute)
+        $under24Hours = [];
+        $over24Hours = [];
+        
+        foreach ($versionFiles as $file) {
+            $fileTime = filemtime($file);
+            if ($fileTime !== false) {
+                if ($fileTime >= $cutoffTime) {
+                    $under24Hours[] = $file;  // Keep ALL files under 24h
+                } else {
+                    $over24Hours[] = $file;   // Candidates for deletion
+                }
+            }
+        }
+        
+        // Step 2: Keep only 3 newest from over24Hours files
+        if (count($over24Hours) <= 3) {
+            return 0; // Keep all if 3 or fewer old files
+        }
+        
+        // Sort over24Hours by modification time (newest first)
+        usort($over24Hours, function($a, $b) {
+            return filemtime($b) - filemtime($a);
+        });
+        
+        // Step 3: Delete files beyond the first 3 in over24Hours
+        $deleted = 0;
+        for ($i = 3; $i < count($over24Hours); $i++) {
+            if (@unlink($over24Hours[$i])) {
+                $deleted++;
+            }
+        }
+        
+        return $deleted;
     }
 
     /**
@@ -444,4 +519,5 @@ class CoreVersioningLogic
     {
         return $this->notesPath;
     }
+
 }

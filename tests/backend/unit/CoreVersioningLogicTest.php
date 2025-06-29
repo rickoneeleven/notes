@@ -190,60 +190,270 @@ class CoreVersioningLogicTest extends BaseTestCase
         $this->assertNotEquals($hash1, $hash3, 'Modified content should produce different hash');
     }
 
-    public function testVersionCleanupLogic(): void
+    /**
+     * Helper method to create mock versions with specific timestamps and file modification times
+     */
+    private function createMockVersionsWithAges(string $noteId, array $versionAges): array
     {
-        $noteId = 'note_cleanup_test';
+        $baseTime = time();
+        $createdVersions = [];
         
-        // Create versions with different ages
-        $oldTimestamp = time() - (25 * 3600); // 25 hours ago
-        $recentTimestamp = time() - (1 * 3600); // 1 hour ago
-        $currentTimestamp = time();
+        foreach ($versionAges as $index => $hoursAgo) {
+            $timestamp = $baseTime - ($hoursAgo * 3600);
+            $noteData = [
+                'id' => $noteId,
+                'title' => "Version {$index}",
+                'content' => "Content for version {$index} created {$hoursAgo} hours ago",
+                'modified' => date('Y-m-d H:i:s', $timestamp)
+            ];
+            
+            $success = $this->versioningLogic->createVersionSnapshot($noteId, $noteData, $timestamp);
+            $this->assertTrue($success, "Should create version {$index}");
+            
+            $createdVersions[] = $timestamp;
+        }
         
-        $oldNote = [
-            'id' => $noteId,
-            'title' => 'Old Version',
-            'content' => 'This is an old version',
-            'modified' => date('Y-m-d H:i:s', $oldTimestamp)
+        // Set actual file modification times to match our test scenario
+        $storage = $this->versioningLogic->getStorage();
+        $versionDir = $storage->getVersionDirectoryPath($noteId);
+        $versionFiles = $this->versioningLogic->getVersionHistory($noteId);
+        
+        foreach ($versionFiles as $index => $versionFile) {
+            $filePath = $versionDir . '/' . $versionFile;
+            $correspondingAge = $versionAges[$index];
+            $correspondingTime = $baseTime - ($correspondingAge * 3600);
+            touch($filePath, $correspondingTime);
+        }
+        
+        return $createdVersions;
+    }
+
+    public function testCleanupKeepsAllVersionsWithin24Hours(): void
+    {
+        $noteId = 'note_cleanup_within_24h';
+        
+        // Create 5 versions, all within 24 hours
+        $versionAges = [1, 3, 6, 12, 20]; // Hours ago (all < 24)
+        $this->createMockVersionsWithAges($noteId, $versionAges);
+        
+        $versionsBeforeCleanup = $this->versioningLogic->getVersionHistory($noteId);
+        $this->assertCount(5, $versionsBeforeCleanup, 'Should have 5 versions before cleanup');
+        
+        // Run cleanup
+        $cleanedCount = $this->versioningLogic->cleanupOldVersions(24);
+        $this->assertEquals(0, $cleanedCount, 'Should not clean any versions within 24 hours');
+        
+        $versionsAfterCleanup = $this->versioningLogic->getVersionHistory($noteId);
+        $this->assertCount(5, $versionsAfterCleanup, 'Should still have all 5 versions');
+    }
+
+    public function testCleanupKeepsOnlyLast3VersionsAfter24Hours(): void
+    {
+        $noteId = 'note_cleanup_keep_last_3';
+        
+        // Create 6 versions, all older than 24 hours
+        $versionAges = [72, 60, 48, 36, 30, 25]; // Hours ago (all > 24)
+        $this->createMockVersionsWithAges($noteId, $versionAges);
+        
+        $versionsBeforeCleanup = $this->versioningLogic->getVersionHistory($noteId);
+        $this->assertCount(6, $versionsBeforeCleanup, 'Should have 6 versions before cleanup');
+        
+        // Run cleanup
+        $cleanedCount = $this->versioningLogic->cleanupOldVersions(24);
+        $this->assertEquals(3, $cleanedCount, 'Should clean 3 oldest versions (keep last 3)');
+        
+        $versionsAfterCleanup = $this->versioningLogic->getVersionHistory($noteId);
+        $this->assertCount(3, $versionsAfterCleanup, 'Should have only 3 versions remaining');
+        
+        // Verify the 3 newest versions are kept by checking file modification times
+        $storage = $this->versioningLogic->getStorage();
+        $versionDir = $storage->getVersionDirectoryPath($noteId);
+        $remainingTimes = [];
+        
+        foreach ($versionsAfterCleanup as $versionFile) {
+            $filePath = $versionDir . '/' . $versionFile;
+            $remainingTimes[] = filemtime($filePath);
+        }
+        
+        // Sort to get newest first
+        rsort($remainingTimes);
+        
+        // These should correspond to the 3 newest versions (25, 30, 36 hours ago)
+        $expectedTimes = [
+            time() - (25 * 3600),
+            time() - (30 * 3600), 
+            time() - (36 * 3600)
         ];
         
-        $recentNote = [
-            'id' => $noteId,
-            'title' => 'Recent Version', 
-            'content' => 'This is a recent version',
-            'modified' => date('Y-m-d H:i:s', $recentTimestamp)
-        ];
+        foreach ($expectedTimes as $index => $expectedTime) {
+            $this->assertEqualsWithDelta($expectedTime, $remainingTimes[$index], 5,
+                'Remaining version should match expected newest timestamps');
+        }
+    }
+
+    public function testCleanupCorrectlyIdentifiesVersionsToDelete(): void
+    {
+        $noteId = 'note_cleanup_mixed_ages';
         
-        $currentNote = [
-            'id' => $noteId,
-            'title' => 'Current Version',
-            'content' => 'This is the current version',
-            'modified' => date('Y-m-d H:i:s', $currentTimestamp)
-        ];
+        // Create mixed versions: some within 24h, some beyond 24h (more than 3)
+        $versionAges = [72, 48, 36, 30, 25, 20, 12, 6]; // Mix of old and new
+        $this->createMockVersionsWithAges($noteId, $versionAges);
         
-        // Create versions
-        $this->versioningLogic->createVersionSnapshot($noteId, $oldNote, $oldTimestamp);
-        $this->versioningLogic->createVersionSnapshot($noteId, $recentNote, $recentTimestamp);
-        $this->versioningLogic->createVersionSnapshot($noteId, $currentNote, $currentTimestamp);
+        $versionsBeforeCleanup = $this->versioningLogic->getVersionHistory($noteId);
+        $this->assertCount(8, $versionsBeforeCleanup, 'Should have 8 versions before cleanup');
+        
+        // Run cleanup
+        $cleanedCount = $this->versioningLogic->cleanupOldVersions(24);
+        
+        // Algorithm: Sort newest first [6h, 12h, 20h, 25h, 30h, 36h, 48h, 72h]
+        // Keep first 3: [6h, 12h, 20h]
+        // Check remaining 5: [25h, 30h, 36h, 48h, 72h] - all > 24h, so delete all 5
+        $this->assertEquals(5, $cleanedCount, 'Should clean all 5 versions beyond the first 3 that are older than 24h');
+        
+        $versionsAfterCleanup = $this->versioningLogic->getVersionHistory($noteId);
+        $this->assertCount(3, $versionsAfterCleanup, 'Should have 3 versions remaining (the newest ones)');
+    }
+
+    public function testCleanupWithExactly3Versions(): void
+    {
+        $noteId = 'note_cleanup_exactly_3';
+        
+        // Create exactly 3 versions, all older than 24 hours
+        $versionAges = [72, 48, 30]; // All > 24 hours
+        $this->createMockVersionsWithAges($noteId, $versionAges);
         
         $versionsBeforeCleanup = $this->versioningLogic->getVersionHistory($noteId);
         $this->assertCount(3, $versionsBeforeCleanup, 'Should have 3 versions before cleanup');
         
-        // Manually set file modification times to simulate old files
-        $storage = $this->versioningLogic->getStorage();
-        $versionDir = $storage->getVersionDirectoryPath($noteId);
-        foreach ($versionsBeforeCleanup as $versionFile) {
-            $filePath = $versionDir . '/' . $versionFile;
-            if (strpos($versionFile, '25-') !== false) { // Old file (25 hours ago)
-                touch($filePath, $oldTimestamp);
-            }
-        }
-        
-        // Run cleanup (24 hour retention)
+        // Run cleanup
         $cleanedCount = $this->versioningLogic->cleanupOldVersions(24);
-        $this->assertGreaterThan(0, $cleanedCount, 'Should clean up at least 1 old version');
+        $this->assertEquals(0, $cleanedCount, 'Should not clean any versions when exactly 3 exist');
         
         $versionsAfterCleanup = $this->versioningLogic->getVersionHistory($noteId);
-        $this->assertLessThan(count($versionsBeforeCleanup), count($versionsAfterCleanup), 'Should have fewer versions after cleanup');
+        $this->assertCount(3, $versionsAfterCleanup, 'Should still have all 3 versions');
+    }
+
+    public function testCleanupWithFewerThan3Versions(): void
+    {
+        $noteId = 'note_cleanup_few_versions';
+        
+        // Test with 1 version
+        $versionAges = [48]; // 1 version, older than 24 hours
+        $this->createMockVersionsWithAges($noteId, $versionAges);
+        
+        $cleanedCount = $this->versioningLogic->cleanupOldVersions(24);
+        $this->assertEquals(0, $cleanedCount, 'Should not clean when only 1 version exists');
+        
+        $versions = $this->versioningLogic->getVersionHistory($noteId);
+        $this->assertCount(1, $versions, 'Should still have 1 version');
+        
+        // Test with 2 versions
+        $noteId2 = 'note_cleanup_two_versions';
+        $versionAges2 = [60, 36]; // 2 versions, both older than 24 hours
+        $this->createMockVersionsWithAges($noteId2, $versionAges2);
+        
+        $cleanedCount2 = $this->versioningLogic->cleanupOldVersions(24);
+        $this->assertEquals(0, $cleanedCount2, 'Should not clean when only 2 versions exist');
+        
+        $versions2 = $this->versioningLogic->getVersionHistory($noteId2);
+        $this->assertCount(2, $versions2, 'Should still have 2 versions');
+    }
+
+    public function testCleanupWithNoVersions(): void
+    {
+        $noteId = 'note_cleanup_no_versions';
+        
+        // Don't create any versions for this note
+        $cleanedCount = $this->versioningLogic->cleanupOldVersions(24);
+        $this->assertEquals(0, $cleanedCount, 'Should handle cleanup gracefully with no versions');
+        
+        $versions = $this->versioningLogic->getVersionHistory($noteId);
+        $this->assertCount(0, $versions, 'Should have no versions');
+    }
+
+    public function testCleanupHandlesFileLocking(): void
+    {
+        $noteId = 'note_cleanup_file_locking';
+        
+        // Create multiple versions to test locking behavior
+        $versionAges = [72, 48, 36, 30]; // All > 24 hours, should keep last 3
+        $this->createMockVersionsWithAges($noteId, $versionAges);
+        
+        $versionsBeforeCleanup = $this->versioningLogic->getVersionHistory($noteId);
+        $this->assertCount(4, $versionsBeforeCleanup, 'Should have 4 versions before cleanup');
+        
+        // Simulate lock file by creating it manually
+        $storage = $this->versioningLogic->getStorage();
+        $versionDir = $storage->getVersionDirectoryPath($noteId);
+        $lockFile = $versionDir . '.cleanup.lock';
+        
+        // Create lock file and hold a lock
+        $lockHandle = fopen($lockFile, 'w');
+        $this->assertNotFalse($lockHandle, 'Should create lock file');
+        $lockAcquired = flock($lockHandle, LOCK_EX | LOCK_NB);
+        $this->assertTrue($lockAcquired, 'Should acquire lock');
+        
+        try {
+            // Run cleanup while lock is held
+            $cleanedCount = $this->versioningLogic->cleanupOldVersions(24);
+            $this->assertEquals(0, $cleanedCount, 'Should not clean any versions when file is locked');
+            
+            $versionsAfterCleanup = $this->versioningLogic->getVersionHistory($noteId);
+            $this->assertCount(4, $versionsAfterCleanup, 'Should still have all 4 versions when locked');
+        } finally {
+            flock($lockHandle, LOCK_UN);
+            fclose($lockHandle);
+            @unlink($lockFile);
+        }
+        
+        // Now run cleanup again without lock
+        $cleanedCount = $this->versioningLogic->cleanupOldVersions(24);
+        $this->assertEquals(1, $cleanedCount, 'Should clean 1 version after lock is released');
+        
+        $versionsAfterUnlock = $this->versioningLogic->getVersionHistory($noteId);
+        $this->assertCount(3, $versionsAfterUnlock, 'Should have 3 versions after cleanup without lock');
+    }
+
+    public function testCleanupHandlesUnwritableFiles(): void
+    {
+        $noteId = 'note_cleanup_unwritable';
+        
+        // Create versions that should be cleaned up
+        $versionAges = [72, 48, 36, 30]; // All > 24 hours, should keep last 3
+        $this->createMockVersionsWithAges($noteId, $versionAges);
+        
+        $versionsBeforeCleanup = $this->versioningLogic->getVersionHistory($noteId);
+        $this->assertCount(4, $versionsBeforeCleanup, 'Should have 4 versions before cleanup');
+        
+        // Make the version directory read-only to simulate deletion failure
+        $storage = $this->versioningLogic->getStorage();
+        $versionDir = $storage->getVersionDirectoryPath($noteId);
+        $originalPerms = fileperms($versionDir);
+        
+        // Make directory read-only (prevents file deletion)
+        chmod($versionDir, 0555);
+        
+        try {
+            // Run cleanup
+            $cleanedCount = $this->versioningLogic->cleanupOldVersions(24);
+            
+            // Should attempt to clean files but fail due to read-only directory
+            $this->assertEquals(0, $cleanedCount, 'Should not clean any files when directory is read-only');
+            
+            $versionsAfterCleanup = $this->versioningLogic->getVersionHistory($noteId);
+            $this->assertCount(4, $versionsAfterCleanup, 'Should still have all 4 versions when deletion fails');
+            
+        } finally {
+            // Restore permissions for cleanup
+            chmod($versionDir, $originalPerms);
+        }
+        
+        // Now test that cleanup works normally after restoring permissions
+        $cleanedCount = $this->versioningLogic->cleanupOldVersions(24);
+        $this->assertEquals(1, $cleanedCount, 'Should clean 1 version after permissions are restored');
+        
+        $versionsAfterRestore = $this->versioningLogic->getVersionHistory($noteId);
+        $this->assertCount(3, $versionsAfterRestore, 'Should have 3 versions after successful cleanup');
     }
 
     public function testBatchVersionProcessing(): void

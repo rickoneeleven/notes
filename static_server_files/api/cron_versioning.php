@@ -277,17 +277,15 @@ function main() {
         $storageStats = $versioningLogic->getVersioningStatistics();
         $statistics['total_size'] = $storageStats['totalSize'] ?? 0;
         
-        // Cleanup old versions whenever changes are detected or manually requested
+        // Always run cleanup of old versions
         $cleanupCount = 0;
-        if ($options['cleanup'] || $statistics['created'] > 0) { // Run cleanup when versions are created
-            logMessage("Starting cleanup of old versions");
-            
-            if (!$options['dry-run']) {
-                $cleanupCount = $versioningLogic->cleanupOldVersions(24); // 24 hours retention
-                logMessage("Cleanup completed: removed {$cleanupCount} old versions");
-            } else {
-                logMessage("Would cleanup old versions (dry run)");
-            }
+        logMessage("Starting cleanup of old versions");
+        
+        if (!$options['dry-run']) {
+            $cleanupCount = $versioningLogic->cleanupOldVersions(24); // 24 hours retention
+            logMessage("Cleanup completed: removed {$cleanupCount} old versions");
+        } else {
+            logMessage("Would cleanup old versions (dry run)");
         }
         
         // Log final statistics
