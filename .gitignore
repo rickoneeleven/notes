@@ -10,6 +10,7 @@ logs/
 # Temporary files
 *.tmp
 *.log
+*.cache/
 
 
 # PHP session files

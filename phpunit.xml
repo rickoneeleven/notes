@@ -1,37 +1,31 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
-         bootstrap="tests/bootstrap.php"
-         colors="true"
-         verbose="true"
-         testdox="true">
-    
-    <testsuites>
-        <testsuite name="Backend Unit Tests">
-            <directory>tests/backend/unit</directory>
-        </testsuite>
-        <testsuite name="Backend Integration Tests">
-            <directory>tests/backend/integration</directory>
-        </testsuite>
-    </testsuites>
-
-    <coverage>
-        <include>
-            <directory suffix=".php">static_server_files/api</directory>
-        </include>
-        <exclude>
-            <directory>vendor</directory>
-            <directory>tests</directory>
-        </exclude>
-        <report>
-            <html outputDirectory="coverage"/>
-            <text outputFile="php://stdout"/>
-        </report>
-    </coverage>
-
-    <php>
-        <const name="PHPUNIT_TESTSUITE" value="true"/>
-        <ini name="memory_limit" value="512M"/>
-        <env name="APP_ENV" value="testing"/>
-    </php>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd" bootstrap="tests/bootstrap.php" colors="true" testdox="true" cacheDirectory=".phpunit.cache">
+  <testsuites>
+    <testsuite name="Backend Unit Tests">
+      <directory>tests/backend/unit</directory>
+    </testsuite>
+    <testsuite name="Backend Integration Tests">
+      <directory>tests/backend/integration</directory>
+    </testsuite>
+  </testsuites>
+  <coverage>
+    <report>
+      <html outputDirectory="coverage"/>
+      <text outputFile="php://stdout"/>
+    </report>
+  </coverage>
+  <php>
+    <const name="PHPUNIT_TESTSUITE" value="true"/>
+    <ini name="memory_limit" value="512M"/>
+    <env name="APP_ENV" value="testing"/>
+  </php>
+  <source>
+    <include>
+      <directory suffix=".php">static_server_files/api</directory>
+    </include>
+    <exclude>
+      <directory>vendor</directory>
+      <directory>tests</directory>
+    </exclude>
+  </source>
 </phpunit>

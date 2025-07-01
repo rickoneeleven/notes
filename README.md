@@ -177,10 +177,9 @@ cd tests
 node run-all-tests.js
 # Results saved to `tests/test-summary.txt`
 
+#for php unit testing
+./run-backend-tests.sh
 
-# 4. Run backend tests :
-php8.3 vendor/bin/phpunit          # Use specific PHP 8.3+ for tests
-```
 
 ## Requirements
 
