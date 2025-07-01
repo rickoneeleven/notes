@@ -305,13 +305,13 @@ class CoreVersioningLogicTest extends BaseTestCase
         // Run cleanup
         $cleanedCount = $this->versioningLogic->cleanupOldVersions(24);
         
-        // Algorithm: Sort newest first [6h, 12h, 20h, 25h, 30h, 36h, 48h, 72h]
-        // Keep first 3: [6h, 12h, 20h]
-        // Check remaining 5: [25h, 30h, 36h, 48h, 72h] - all > 24h, so delete all 5
-        $this->assertEquals(5, $cleanedCount, 'Should clean all 5 versions beyond the first 3 that are older than 24h');
+        // Algorithm: Keep all within 24h + 3 newest beyond 24h
+        // Within 24h: [6h, 12h, 20h] - keep all 3
+        // Beyond 24h: [25h, 30h, 36h, 48h, 72h] - keep newest 3: [25h, 30h, 36h], delete 2: [48h, 72h]
+        $this->assertEquals(2, $cleanedCount, 'Should clean 2 oldest versions beyond 24h (keep all within 24h + 3 newest beyond 24h)');
         
         $versionsAfterCleanup = $this->versioningLogic->getVersionHistory($noteId);
-        $this->assertCount(3, $versionsAfterCleanup, 'Should have 3 versions remaining (the newest ones)');
+        $this->assertCount(6, $versionsAfterCleanup, 'Should have 6 versions remaining (3 within 24h + 3 newest beyond 24h)');
     }
 
     public function testCleanupWithExactly3Versions(): void

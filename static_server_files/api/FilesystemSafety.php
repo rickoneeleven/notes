@@ -53,7 +53,7 @@ class FilesystemSafety
                 $flags |= LOCK_EX;
             }
             
-            $result = file_put_contents($filePath, $content, $flags);
+            $result = @file_put_contents($filePath, $content, $flags);
             
             if ($result === false) {
                 // Check if it's likely a permission issue
