@@ -51,8 +51,8 @@ The version history system requires a cron job to automatically create snapshots
 
 **Replace the path** with your actual project path:
    ```bash
-   # Minutely versioning with automatic 1MB log rotation (built into PHP script)
-   * * * * * /usr/bin/php8.3 /home/username/domains/yoursite.com/public_html/static_server_files/api/cron_versioning.php >> /home/username/domains/yoursite.com/public_html/notes/versions/cron_versioning.log 2>&1
+   # 15 Minutely versioning with automatic 1MB log rotation (built into PHP script)
+   */15 * * * * /usr/bin/php8.3 /home/username/domains/yoursite.com/public_html/static_server_files/api/cron_versioning.php >> /home/username/domains/yoursite.com/public_html/notes/versions/cron_versioning.log 2>&1
    ```
 ### Verification
 
@@ -163,19 +163,14 @@ public_html/                     # Project root
 Run all existing tests to ensure nothing breaks:
 
 ```bash
-# 1. Start dev server first
+# 1. Start dev server first - not sure this is required, run-all... starts dev server, delete this line after testing
 npm run dev
 
 # 2. Run original E2E tests (one at a time, as usual)
-node tests/test-simple-save.js
-node tests/test-patient-save.js  
-node tests/test-security.js
-node tests/test-conflict-race.js
-node tests/test-fast-click-away.js
-node tests/test-folders.js
-node tests/test-folder-operations.js
-node tests/test-idle-state.js
-# ... etc (all your existing test-*.js files)
+cd tests
+node run-all-tests.js
+# Results saved to `tests/test-summary.txt`
+
 
 # 4. Run backend tests 
 composer test                       # PHPUnit tests for versioning engine

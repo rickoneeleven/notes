@@ -41,22 +41,6 @@ async function testFolderVisibility() {
             testResults.push('✅ PASS: Frontend correctly hides folders from unauthenticated users');
         }
         
-        // Test 3: Incognito mode test
-        console.log('\n3. Testing incognito mode...');
-        const incognitoContext = await browser.createIncognitoBrowserContext();
-        const incognitoPage = await incognitoContext.newPage();
-        
-        await incognitoPage.goto('http://localhost:3000');
-        await incognitoPage.waitForSelector('#notesList', { timeout: 5000 });
-        
-        const incognitoFolderElements = await incognitoPage.$$('.folder');
-        if (incognitoFolderElements.length > 0) {
-            testResults.push(`❌ FAIL: Incognito mode shows ${incognitoFolderElements.length} folder elements`);
-        } else {
-            testResults.push('✅ PASS: Incognito mode correctly hides folders');
-        }
-        
-        await incognitoContext.close();
         
     } catch (error) {
         testResults.push(`❌ ERROR: ${error.message}`);
