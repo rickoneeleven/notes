@@ -162,6 +162,12 @@ public_html/                     # Project root
 
 Run all existing tests to ensure nothing breaks:
 
+### Test Setup (One Time Only)
+```bash
+npm install         # For frontend testing
+composer install    # For backend testing
+```
+
 ```bash
 # 1. Start dev server first - not sure this is required, run-all... starts dev server, delete this line after testing
 npm run dev
@@ -172,21 +178,8 @@ node run-all-tests.js
 # Results saved to `tests/test-summary.txt`
 
 
-# 4. Run backend tests 
-composer test                       # PHPUnit tests for versioning engine
-# OR if PHP version conflicts:
+# 4. Run backend tests :
 php8.3 vendor/bin/phpunit          # Use specific PHP 8.3+ for tests
-```
-
-### What to Expect
-- **All existing tests should pass** (no regressions)
-- **Version tests should pass** (versioning features work)
-- **Backend tests should pass** (versioning logic is solid)
-
-### Test Setup (One Time Only)
-```bash
-npm install         # For frontend testing
-composer install    # For backend testing
 ```
 
 ## Requirements
