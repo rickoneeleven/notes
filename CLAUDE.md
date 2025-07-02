@@ -50,15 +50,7 @@ Use the output from the Gemini CLI to gain the specific knowledge you need, then
 
 read README.md
 
-## Project Overview
-Production-grade web-based notes application with comprehensive version history system.
-
-**For complete project details, see [README.md](README.md) which includes:**
-- Full feature list and technology stack
-- Directory structure and architecture  
-- API endpoints and testing framework
-- Installation and configuration
-- Development workflow and helper commands
+use php8.3 for tests
 
 ## Quick Reference
 
