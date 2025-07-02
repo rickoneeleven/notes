@@ -116,6 +116,9 @@ async function testVersionsUI() {
         }
         console.log('✓ Versions modal closed successfully');
         
+        console.log('Cleaning up test notes before logout...');
+        await helper.cleanupTestNotes(page);
+        
         console.log('Testing button visibility when not authenticated...');
         // Logout to test button visibility
         await page.click('#loginBtn'); // Should logout
@@ -138,12 +141,6 @@ async function testVersionsUI() {
         await helper.takeScreenshot(page, 'test-versions-ui-error.png');
         throw error;
     } finally {
-        console.log('Cleaning up...');
-        try {
-            await helper.cleanupTestNotes(page);
-        } catch (cleanupError) {
-            console.warn('Failed to cleanup test notes:', cleanupError.message);
-        }
         await browser.close();
     }
 }
