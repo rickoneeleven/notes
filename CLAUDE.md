@@ -78,7 +78,7 @@ use php8.3 for tests
 
 **Development Workflow (MANDATORY order)**:
 1. Backup: `cp -rf notes/* backup/`
-2. Dev server: `npm run dev` (localhost:3000)
+2. Dev server: `npm run dev &` (localhost:3000)
 3. Testing: Run individual tests
 4. Build: `npm run build` (only after tests pass)
 5. Cleanup: `pkill -f "vite"`
