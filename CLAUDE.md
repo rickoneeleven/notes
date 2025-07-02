@@ -2,99 +2,53 @@
 
 Adherence to these principles is mandatory for all code modifications:
 
-**Simplicity, Clarity & Conciseness:** Write only necessary code.
-**Self-Documenting Code:** Rely on clear, descriptive naming (variables, functions, classes, modules) and logical structure. Purpose should be evident without comments.
-**Minimal Comments:** Avoid comments. Remove existing comments. Code must be the source of clarity.
-**Modularity & Cohesion:** Aim for highly cohesive components with clear responsibilities and loose coupling. Controllers/Coordinators avoid unrelated logic.
-**DRY (Don't Repeat Yourself):** Extract and reuse common logic patterns.
-**Dependency Management:** Prefer constructor injection. Avoid direct creation of complex services within consumers.
-**Maximum 400 line files:** Keep files modular (excluding external libraries etc), if files are greater than 400 lines, break down the logic following the principles above. Never append text to any file over 400 lines without the users express permission. 
-**Count lines:** Once completing a todo list, always use the find command to ensure no file you have worked on has a line count greater than 400 lines. If it has, reiterate following the core principles above. 
-**Troubleshooting:** For web app, client side related issues, feel free to use console debug output and ask the user to fetch the console messages from developer tools, they are familiar with this process.
+*   **Simplicity, Clarity & Conciseness:** Write only necessary code.
+*   **Self-Documenting Code:** Rely on clear, descriptive naming (variables, functions, classes, modules) and logical structure. The purpose should be evident without comments.
+*   **Minimal Comments:** Avoid comments. If you see them, remove them. The code itself must be the single source of truth.
+*   **Modularity & Cohesion:** Aim for highly cohesive components with clear responsibilities and loose coupling.
+*   **DRY (Don't Repeat Yourself):** Extract and reuse common logic patterns.
+*   **Dependency Management:** Always prefer constructor injection. Avoid direct creation of complex services within consumers.
+*   **Maximum 400 lines per file:** Keep files modular and focused. If a file exceeds 400 lines during your work, refactor it by breaking down the logic according to the principles above. Never append to a file over 400 lines without the user's express permission.
+*   **Verify Line Counts:** After completing your tasks, use a command like `find . -name "*.py" -type f -print0 | xargs -0 wc -l` to check the line counts of files you have modified. If any exceed 400 lines, you must refactor them.
+*   **Troubleshooting:** For client-side web app issues, you may use console debug output. Ask the user to fetch the console messages from their browser's developer tools; they are familiar with this.
+
+## Communication Protocol
+*	**be direct and fact based:** do not be agreeable, the user likes it when you push back and help correct the user
 
 ## Tools
-**mypi** - If you'd like to use mypi and it's not installed, check to see if you need to activate environment venv, and then install it "pip install mypi"
-**context7 - mcp** - For up to date documentation you can use context7 mcp if you get stuck or would like reference.
+*   **mypy:** If `mypy` is not installed, check for a `venv` environment, activate it, and then run `pip install mypy`.
+*   **context7 - mcp:** Use this for up-to-date documentation if you need a reference.
+*   **playwright - mcp:** whenever you need to use a browser for tests etc, use this
 
+## When You Get Stuck: Using the Gemini CLI for Targeted Analysis
 
-# Using Gemini CLI for Large Codebase Analysis
+If you are blocked, cannot find a specific piece of code, or need to understand a complex interaction across the codebase, use the `gemini` CLI as a targeted tool.
 
-When analyzing large codebases or multiple files that might exceed context limits, use the Gemini CLI with its massive
-context window. Use `gemini -p` to leverage Google Gemini's large context capacity.
+**CRITICAL: `gemini -p` is STATELESS.** Each command is a new, isolated query. It does not remember past interactions. You cannot ask follow-up questions. You must provide all necessary context in a single command.
 
-## File and Directory Inclusion Syntax
+### How to Use the Gemini CLI:
 
-Use the `@` syntax to include files and directories in your Gemini prompts. The paths should be relative to WHERE you run the
-  gemini command:
+1.  **Formulate a Specific Question:** Determine the *exact* information you need to unblock yourself. Avoid general questions like "summarize the code."
+2.  **Identify Relevant Source Directories:** Scope your query to the most relevant top-level directories (e.g., `@src`, `@api`, `@lib`). Do **not** use `@./` unless absolutely necessary.
+3.  **Construct and Run the Command:** Combine the directories and your specific question into a single `gemini -p` command.
 
-### Examples:
+#### Usage Examples:
 
-**Single file analysis:**
-gemini -p "@src/main.py Explain this file's purpose and structure"
+*   **To trace a specific feature:**
+    `gemini -p "@src/ @api/ Trace the data flow for a 'user password reset' request, starting from the API endpoint down to the database interaction. What services are involved?"`
 
-Multiple files:
-gemini -p "@package.json @src/index.js Analyze the dependencies used in the code"
+*   **To find a specific configuration:**
+    `gemini -p "@src/config/ @lib/ Where is the configuration for the external payment gateway API? Show me the file and the relevant lines."`
 
-Entire directory:
-gemini -p "@src/ Summarize the architecture of this codebase"
+*   **To understand a specific mechanism:**
+    `gemini -p "@src/auth/ How is a user's session token validated? Show me the middleware or function responsible for this check."`
 
-Multiple directories:
-gemini -p "@src/ @tests/ Analyze test coverage for the source code"
-
-Current directory and subdirectories:
-gemini -p "@./ Give me an overview of this entire project"
-
-# Or use --all_files flag:
-gemini --all_files -p "Analyze the project structure and dependencies"
-
-Implementation Verification Examples
-
-Check if a feature is implemented:
-gemini -p "@src/ @lib/ Has dark mode been implemented in this codebase? Show me the relevant files and functions"
-
-Verify authentication implementation:
-gemini -p "@src/ @middleware/ Is JWT authentication implemented? List all auth-related endpoints and middleware"
-
-Check for specific patterns:
-gemini -p "@src/ Are there any React hooks that handle WebSocket connections? List them with file paths"
-
-Verify error handling:
-gemini -p "@src/ @api/ Is proper error handling implemented for all API endpoints? Show examples of try-catch blocks"
-
-Check for rate limiting:
-gemini -p "@backend/ @middleware/ Is rate limiting implemented for the API? Show the implementation details"
-
-Verify caching strategy:
-gemini -p "@src/ @lib/ @services/ Is Redis caching implemented? List all cache-related functions and their usage"
-
-Check for specific security measures:
-gemini -p "@src/ @api/ Are SQL injection protections implemented? Show how user inputs are sanitized"
-
-Verify test coverage for features:
-gemini -p "@src/payment/ @tests/ Is the payment processing module fully tested? List all test cases"
-
-When to Use Gemini CLI
-
-Use gemini -p when:
-- Analyzing entire codebases or large directories
-- Comparing multiple large files
-- Need to understand project-wide patterns or architecture
-- Current context window is insufficient for the task
-- Working with files totaling more than 100KB
-- Verifying if specific features, patterns, or security measures are implemented
-- Checking for the presence of certain coding patterns across the entire codebase
-
-Important Notes
-
-- Paths in @ syntax are relative to your current working directory when invoking gemini
-- The CLI will include file contents directly in the context
-- No need for --yolo flag for read-only analysis
-- Gemini's context window can handle entire codebases that would overflow Claude's context
-- When checking implementations, be specific about what you're looking for to get accurate results
-
+Use the output from the Gemini CLI to gain the specific knowledge you need, then proceed with your primary task.
 
 ====-
-## Project Specific Intructions Below
+## Project Specific Instructions Below
+
+read README.md
 
 ## Project Overview
 Production-grade web-based notes application with comprehensive version history system.
