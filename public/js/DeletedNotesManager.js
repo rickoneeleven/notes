@@ -10,24 +10,44 @@ class DeletedNotesManager {
     async showDeletedNotes() {
         try {
             const response = await fetch('/api/deleted-notes');
-            const deletedNotes = await response.json();
-            this.renderDeletedNotes(deletedNotes);
+            const deletedItems = await response.json(); 
+            this.renderDeletedNotes(deletedItems);
             this.app.ui.showDeletedNotesModal();
+
+            // Add event listener after rendering
+            const list = document.getElementById('deletedNotesList');
+            list.onclick = (event) => {
+                const target = event.target;
+                if (target.classList.contains('restore-btn')) {
+                    const noteId = target.dataset.noteId;
+                    const folderName = target.dataset.folderName;
+
+                    if (noteId) {
+                        this.restoreNote(noteId);
+                    } else if (folderName) {
+                        this.restoreFolder(folderName);
+                    }
+                }
+            };
+
         } catch (error) {
             console.error('Failed to load deleted notes:', error);
         }
     }
 
-    renderDeletedNotes(deletedNotes) {
+    renderDeletedNotes(deletedItems) {
         const list = document.getElementById('deletedNotesList');
         list.innerHTML = '';
         
-        if (deletedNotes.length === 0) {
-            list.innerHTML = '<div class="no-deleted-notes">No deleted notes</div>';
+        const { deletedFolders, standaloneDeletedNotes } = deletedItems;
+
+        if (deletedFolders.length === 0 && standaloneDeletedNotes.length === 0) {
+            list.innerHTML = '<div class="no-deleted-notes">No deleted items</div>';
             return;
         }
-        
-        deletedNotes.forEach(note => {
+
+        // Helper function to create a note item element
+        const createNoteElement = (note) => {
             const item = document.createElement('div');
             item.className = 'deleted-note-item';
             
@@ -41,15 +61,44 @@ class DeletedNotesManager {
                     <div class="deleted-note-meta">${daysText}</div>
                     <div class="deleted-note-preview">${(note.content || '').substring(0, 100)}${note.content && note.content.length > 100 ? '...' : ''}</div>
                 </div>
-                <button class="restore-btn" data-note-id="${note.id}" title="Restore note">↶</button>
+                <button class="restore-btn" data-note-id="${note.id}" title="Restore note">↰</button>
+            `;
+            return item;
+        };
+
+        // Render folders and their nested notes
+        deletedFolders.forEach(folder => {
+            const folderItem = document.createElement('div');
+            folderItem.className = 'deleted-folder-item';
+
+            const daysText = folder.days_deleted === 0 ? 'Today' :
+                             folder.days_deleted === 1 ? '1 day ago' :
+                             `${folder.days_deleted} days ago`;
+
+            folderItem.innerHTML = `
+                <div class="deleted-folder-header">
+                    <div class="deleted-folder-content">
+                        <div class="deleted-folder-name">${folder.name}</div>
+                        <div class="deleted-folder-meta">Deleted ${daysText}</div>
+                    </div>
+                    <button class="restore-btn" data-folder-name="${folder.name}" title="Restore folder">↰</button>
+                </div>
+                <div class="deleted-notes-in-folder"></div>
             `;
             
-            const restoreBtn = item.querySelector('.restore-btn');
-            restoreBtn.addEventListener('click', () => {
-                this.restoreNote(note.id);
+            const nestedList = folderItem.querySelector('.deleted-notes-in-folder');
+            folder.notes.forEach(note => {
+                const noteElement = createNoteElement(note);
+                nestedList.appendChild(noteElement);
             });
             
-            list.appendChild(item);
+            list.appendChild(folderItem);
+        });
+
+        // Render standalone notes
+        standaloneDeletedNotes.forEach(note => {
+            const noteElement = createNoteElement(note);
+            list.appendChild(noteElement);
         });
     }
 
@@ -60,13 +109,31 @@ class DeletedNotesManager {
             });
             
             if (response.ok) {
-                this.app.noteManager.loadNotes();
-                this.showDeletedNotes();
+                await this.showDeletedNotes(); // Refresh the view on success
             } else {
                 console.error('Failed to restore note');
+                alert('Failed to restore note.');
             }
         } catch (error) {
-            console.error('Failed to restore note:', error);
+            console.error('Error restoring note:', error);
+        }
+    }
+
+    async restoreFolder(folderName) {
+        try {
+            // Encode the folder name to handle spaces and special characters in the URL
+            const response = await fetch(`/api/deleted-folders/${encodeURIComponent(folderName)}/restore`, {
+                method: 'POST'
+            });
+
+            if (response.ok) {
+                await this.showDeletedNotes(); // Refresh the view on success
+            } else {
+                console.error('Failed to restore folder');
+                alert('Failed to restore folder.');
+            }
+        } catch (error) {
+            console.error('Error restoring folder:', error);
         }
     }
 }

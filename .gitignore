@@ -63,6 +63,9 @@ index.html.backup
 # Test authentication
 tests/test-password.txt
 
+# Cookie jar files (contain session tokens)
+*cookies*.txt
+
 # Package lock files (we'll use npm ci for consistent installs)
 package-lock.json
 

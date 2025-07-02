@@ -13,6 +13,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 define('CONFIG_PATH', '../config.json');
 define('NOTES_DIR', '../../notes/');
 define('DELETED_DIR', '../../notes/deleted/');
+define('DELETED_NOTES_DIR', DELETED_DIR . 'notes/');
+define('DELETED_ASSETS_DIR', DELETED_DIR . 'assets/');
+define('DELETED_FOLDERS_FILE', NOTES_DIR . 'deleted_folders.json');
+define('FOLDERS_FILE', NOTES_DIR . 'folders.json');
 define('MAX_UPLOAD_SIZE', 50 * 1024 * 1024); // 50MB
 
 require_once 'assets.php';
@@ -25,6 +29,14 @@ if (!file_exists(NOTES_DIR)) {
 
 if (!file_exists(DELETED_DIR)) {
     mkdir(DELETED_DIR, 0755, true);
+}
+
+if (!file_exists(DELETED_NOTES_DIR)) {
+    mkdir(DELETED_NOTES_DIR, 0755, true);
+}
+
+if (!file_exists(DELETED_ASSETS_DIR)) {
+    mkdir(DELETED_ASSETS_DIR, 0755, true);
 }
 
 $config = json_decode(file_get_contents(CONFIG_PATH), true);
@@ -67,7 +79,7 @@ function getNotes($includePrivate = false) {
     // Process all notes
     $files = glob(NOTES_DIR . '*.json');
     foreach ($files as $file) {
-        if (basename($file) === 'folders.json') continue;
+        if (basename($file) === 'folders.json' || basename($file) === 'deleted_folders.json') continue;
         
         $note = json_decode(file_get_contents($file), true);
         if ($note['visibility'] === 'public' || $includePrivate) {
@@ -152,110 +164,195 @@ function saveNote($note) {
 }
 
 function cleanupOldDeletedNotes() {
+    // This session check prevents the function from running on every single save.
+    // It's a simple throttle to run it once per day per user session.
     $lastCleanup = $_SESSION['last_cleanup'] ?? 0;
     $today = date('Y-m-d');
-    
     if (date('Y-m-d', $lastCleanup) === $today) {
         return;
     }
-    
-    $files = glob(DELETED_DIR . '*.json');
+
     $cutoffTime = time() - (30 * 24 * 60 * 60);
-    
+
+    // 1. Purge old deleted notes and their assets (existing logic)
+    $files = glob(DELETED_NOTES_DIR . '*.json');
     foreach ($files as $file) {
         if (filemtime($file) < $cutoffTime) {
             $note = json_decode(file_get_contents($file), true);
             if ($note && isset($note['id'])) {
-                $assetsDir = NOTES_DIR . $note['id'] . '/assets';
+                $assetsDir = DELETED_ASSETS_DIR . $note['id'];
                 if (is_dir($assetsDir)) {
+                    // This `deleteDirectory` helper must be included or defined.
+                    // Assuming it exists in assets.php which is required in index.php
                     deleteDirectory($assetsDir);
-                    @rmdir(NOTES_DIR . $note['id']);
                 }
             }
             @unlink($file);
         }
     }
     
+    // 2. NEW LOGIC: Purge old deleted folder definitions
+    if (file_exists(DELETED_FOLDERS_FILE)) {
+        $deletedFolders = json_decode(file_get_contents(DELETED_FOLDERS_FILE), true);
+        $remainingFolders = [];
+        foreach ($deletedFolders as $folder) {
+            $deletedTimestamp = strtotime($folder['deleted_at']);
+            if ($deletedTimestamp >= $cutoffTime) {
+                $remainingFolders[] = $folder;
+            }
+        }
+        // Save the file back with only the non-expired folders
+        file_put_contents(DELETED_FOLDERS_FILE, json_encode($remainingFolders, JSON_PRETTY_PRINT));
+    }
+
     $_SESSION['last_cleanup'] = time();
 }
 
 function moveToDeleted($noteId) {
+    // Delegate to the new centralized trashNote function
+    return trashNote($noteId);
+}
+
+function trashNote($noteId) {
     $sourceFile = NOTES_DIR . $noteId . '.json';
-    $deletedFile = DELETED_DIR . $noteId . '.json';
-    
-    if (file_exists($sourceFile)) {
-        $note = json_decode(file_get_contents($sourceFile), true);
-        $note['deleted_at'] = date('c');
-        
-        file_put_contents($deletedFile, json_encode($note, JSON_PRETTY_PRINT));
-        unlink($sourceFile);
-        
-        // Move assets directory to deleted folder structure
-        $sourceAssets = NOTES_DIR . $noteId . '/assets';
-        $deletedAssets = DELETED_DIR . $noteId . '/assets';
-        if (is_dir($sourceAssets)) {
-            if (!file_exists(DELETED_DIR . $noteId)) {
-                mkdir(DELETED_DIR . $noteId, 0755, true);
-            }
-            rename($sourceAssets, $deletedAssets);
-            @rmdir(NOTES_DIR . $noteId);
-        }
-        
-        return true;
+    if (!file_exists($sourceFile)) {
+        return false;
     }
-    
-    return false;
+
+    // 1. Add deleted_at timestamp to note data
+    $note = json_decode(file_get_contents($sourceFile), true);
+    $note['deleted_at'] = date('c');
+
+    // 2. Move the note file to the new trash location
+    $targetFile = DELETED_NOTES_DIR . $noteId . '.json';
+    file_put_contents($targetFile, json_encode($note, JSON_PRETTY_PRINT));
+    unlink($sourceFile);
+
+    // 3. Move the assets directory
+    $sourceAssets = NOTES_DIR . $noteId . '/assets';
+    if (is_dir($sourceAssets)) {
+        $targetAssets = DELETED_ASSETS_DIR . $noteId;
+        // The assets are moved into a directory named after the noteId
+        rename($sourceAssets, $targetAssets);
+        // Clean up the empty parent note directory
+        @rmdir(NOTES_DIR . $noteId);
+    }
+
+    return true;
 }
 
 function getDeletedNotes() {
-    $deletedNotes = [];
-    $files = glob(DELETED_DIR . '*.json');
-    
+    $deletedFoldersMap = [];
+    $standaloneNotes = [];
+    $now = new DateTime();
+
+    // 1. Process deleted folders first
+    if (file_exists(DELETED_FOLDERS_FILE)) {
+        $folders = json_decode(file_get_contents(DELETED_FOLDERS_FILE), true);
+        foreach ($folders as $folder) {
+            $deletedAt = new DateTime($folder['deleted_at']);
+            $interval = $now->diff($deletedAt);
+            $folder['days_deleted'] = $interval->days;
+            $folder['notes'] = []; // Prepare to hold child notes
+            $deletedFoldersMap[$folder['name']] = $folder;
+        }
+    }
+
+    // 2. Process all deleted notes and group them
+    $files = glob(DELETED_NOTES_DIR . '*.json');
     foreach ($files as $file) {
         $note = json_decode(file_get_contents($file), true);
         if ($note) {
             $deletedAt = new DateTime($note['deleted_at']);
-            $now = new DateTime();
             $interval = $now->diff($deletedAt);
             $note['days_deleted'] = $interval->days;
-            $deletedNotes[] = $note;
+
+            // If note belongs to a trashed folder, add it to the map
+            if (isset($note['folderName']) && isset($deletedFoldersMap[$note['folderName']])) {
+                $deletedFoldersMap[$note['folderName']]['notes'][] = $note;
+            } else {
+                // Otherwise, it's a standalone deleted note
+                $standaloneNotes[] = $note;
+            }
         }
     }
+
+    // 3. Sort everything for consistent ordering
+    // Sort notes within each folder by deletion date (most recent first)
+    foreach ($deletedFoldersMap as &$folder) {
+        usort($folder['notes'], function($a, $b) {
+            return strtotime($b['deleted_at']) - strtotime($a['deleted_at']);
+        });
+    }
     
-    usort($deletedNotes, function($a, $b) {
+    // Convert map to a simple array and sort folders by deletion date
+    $deletedFoldersList = array_values($deletedFoldersMap);
+    usort($deletedFoldersList, function($a, $b) {
         return strtotime($b['deleted_at']) - strtotime($a['deleted_at']);
     });
-    
-    return $deletedNotes;
+
+    // Sort standalone notes by deletion date
+    usort($standaloneNotes, function($a, $b) {
+        return strtotime($b['deleted_at']) - strtotime($a['deleted_at']);
+    });
+
+    // 4. Return the final structured object
+    return [
+        'deletedFolders' => $deletedFoldersList,
+        'standaloneDeletedNotes' => $standaloneNotes
+    ];
 }
 
 function restoreNote($noteId) {
-    $deletedFile = DELETED_DIR . $noteId . '.json';
-    $targetFile = NOTES_DIR . $noteId . '.json';
-    
-    if (file_exists($deletedFile)) {
-        $note = json_decode(file_get_contents($deletedFile), true);
-        unset($note['deleted_at']);
-        $note['modified'] = date('c');
-        
-        file_put_contents($targetFile, json_encode($note, JSON_PRETTY_PRINT));
-        unlink($deletedFile);
-        
-        // Restore assets directory
-        $deletedAssets = DELETED_DIR . $noteId . '/assets';
-        $targetAssets = NOTES_DIR . $noteId . '/assets';
-        if (is_dir($deletedAssets)) {
-            if (!file_exists(NOTES_DIR . $noteId)) {
-                mkdir(NOTES_DIR . $noteId, 0755, true);
+    $deletedFile = DELETED_NOTES_DIR . $noteId . '.json';
+    if (!file_exists($deletedFile)) {
+        return false;
+    }
+
+    $note = json_decode(file_get_contents($deletedFile), true);
+
+    // 1. Remove deletion-related metadata
+    unset($note['deleted_at']);
+    $note['modified'] = date('c');
+
+    // 2. Check if the note's folder is still in the trash.
+    // If so, unset the folderName to restore the note to root.
+    if (isset($note['folderName'])) {
+        $deletedFoldersFile = NOTES_DIR . 'deleted_folders.json';
+        $isFolderStillDeleted = false;
+        if (file_exists($deletedFoldersFile)) {
+            $deletedFolders = json_decode(file_get_contents($deletedFoldersFile), true);
+            if (in_array($note['folderName'], array_column($deletedFolders, 'name'))) {
+                $isFolderStillDeleted = true;
             }
-            rename($deletedAssets, $targetAssets);
-            @rmdir(DELETED_DIR . $noteId);
         }
-        
-        return $note;
+        // Also check if the folder is not in the live folders list
+        $liveFolders = getFolders(); // getFolders() is in folders.php
+        $isFolderLive = in_array($note['folderName'], array_column($liveFolders, 'name'));
+
+        // If the folder is deleted OR doesn't exist live, restore to root
+        if ($isFolderStillDeleted || !$isFolderLive) {
+            unset($note['folderName']);
+        }
     }
     
-    return false;
+    // 3. Save the updated note to the live directory
+    $targetFile = NOTES_DIR . $noteId . '.json';
+    file_put_contents($targetFile, json_encode($note, JSON_PRETTY_PRINT));
+    unlink($deletedFile); // Remove from trash
+
+    // 4. Restore assets directory
+    $deletedAssets = DELETED_ASSETS_DIR . $noteId;
+    if (is_dir($deletedAssets)) {
+        $targetNoteDir = NOTES_DIR . $noteId;
+        if (!is_dir($targetNoteDir)) {
+            mkdir($targetNoteDir, 0755, true);
+        }
+        $targetAssets = $targetNoteDir . '/assets';
+        rename($deletedAssets, $targetAssets);
+    }
+    
+    return $note;
 }
 
 switch ($route) {
@@ -557,6 +654,21 @@ switch ($route) {
                 } else {
                     http_response_code(404);
                     echo json_encode(['error' => 'Deleted note not found']);
+                }
+            } else {
+                http_response_code(403);
+                echo json_encode(['error' => 'Forbidden']);
+            }
+        } elseif (preg_match('/^deleted-folders\/(.+)\/restore$/', $route, $matches)) {
+            $folderName = urldecode($matches[1]);
+            
+            if ($method === 'POST' && isAuthenticated()) {
+                $result = restoreFolder($folderName);
+                if (isset($result['error'])) {
+                    http_response_code($result['code']);
+                    echo json_encode(['error' => $result['error']]);
+                } else {
+                    echo json_encode($result);
                 }
             } else {
                 http_response_code(403);

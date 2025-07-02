@@ -1,6 +1,6 @@
 <?php
 
-define('FOLDERS_FILE', NOTES_DIR . 'folders.json');
+// FOLDERS_FILE is already defined in index.php
 
 function getFolders() {
     if (!file_exists(FOLDERS_FILE)) {
@@ -104,36 +104,43 @@ function renameFolder($oldName, $newName) {
 }
 
 function deleteFolder($folderName) {
+    // Find folder and remove it from live folders.json
     $folders = getFolders();
-    $newFolders = [];
-    $found = false;
-    
+    $folderToTrash = null;
+    $newLiveFolders = [];
     foreach ($folders as $folder) {
         if ($folder['name'] === $folderName) {
-            $found = true;
+            $folderToTrash = $folder;
         } else {
-            $newFolders[] = $folder;
+            $newLiveFolders[] = $folder;
         }
     }
-    
-    if (!$found) {
+
+    if ($folderToTrash === null) {
         return ['error' => 'Folder not found', 'code' => 404];
     }
-    
-    saveFolders($newFolders);
-    
-    // Move all notes in folder to root
+
+    saveFolders($newLiveFolders); // Save the updated list of live folders
+
+    // Add folder to deleted_folders.json
+    $deletedFoldersFile = NOTES_DIR . 'deleted_folders.json';
+    $deletedFolders = file_exists($deletedFoldersFile) ? json_decode(file_get_contents($deletedFoldersFile), true) : [];
+    $folderToTrash['deleted_at'] = date('c');
+    $deletedFolders[] = $folderToTrash;
+    file_put_contents($deletedFoldersFile, json_encode($deletedFolders, JSON_PRETTY_PRINT));
+
+    // Move all notes in the folder to the trash
     $files = glob(NOTES_DIR . '*.json');
     foreach ($files as $file) {
-        if (basename($file) === 'folders.json') continue;
-        
+        if (basename($file) === 'folders.json' || basename($file) === 'deleted_folders.json') continue;
+
         $note = json_decode(file_get_contents($file), true);
         if (isset($note['folderName']) && $note['folderName'] === $folderName) {
-            unset($note['folderName']);
-            file_put_contents($file, json_encode($note, JSON_PRETTY_PRINT));
+            // trashNote is defined in api/index.php
+            trashNote($note['id']);
         }
     }
-    
+
     return ['success' => true];
 }
 
@@ -183,6 +190,51 @@ function moveNoteToFolder($noteId, $folderName) {
     }
     
     return ['note' => $note];
+}
+
+function restoreFolder($folderName) {
+    $deletedFoldersFile = NOTES_DIR . 'deleted_folders.json';
+    if (!file_exists($deletedFoldersFile)) {
+        return ['error' => 'No deleted folders found', 'code' => 404];
+    }
+
+    $deletedFolders = json_decode(file_get_contents($deletedFoldersFile), true);
+    $folderToRestore = null;
+    $newDeletedFolders = [];
+
+    // 1. Find the folder in the deleted list
+    foreach ($deletedFolders as $folder) {
+        if ($folder['name'] === $folderName) {
+            $folderToRestore = $folder;
+        } else {
+            $newDeletedFolders[] = $folder;
+        }
+    }
+
+    if ($folderToRestore === null) {
+        return ['error' => 'Deleted folder not found', 'code' => 404];
+    }
+
+    // 2. Remove 'deleted_at' and add it back to the live folders list
+    unset($folderToRestore['deleted_at']);
+    $liveFolders = getFolders();
+    $liveFolders[] = $folderToRestore;
+    saveFolders($liveFolders);
+
+    // 3. Save the updated list of deleted folders
+    file_put_contents($deletedFoldersFile, json_encode($newDeletedFolders, JSON_PRETTY_PRINT));
+
+    // 4. Restore all notes belonging to this folder
+    $files = glob(DELETED_NOTES_DIR . '*.json');
+    foreach ($files as $file) {
+        $note = json_decode(file_get_contents($file), true);
+        if (isset($note['folderName']) && $note['folderName'] === $folderName) {
+            // restoreNote is defined in api/index.php
+            restoreNote($note['id']);
+        }
+    }
+
+    return ['success' => true];
 }
 
 ?>
