@@ -355,7 +355,7 @@ class NoteManager {
     }
 
     async deleteFolder(folderName) {
-        if (!confirm(`Delete folder "${folderName}"? All notes will be moved to the root level.`)) return;
+        if (!confirm(`Delete folder "${folderName}"? Any notes in the folder will also be deleted.`)) return;
         
         try {
             const response = await fetch(`/api/folders/${encodeURIComponent(folderName)}`, {
