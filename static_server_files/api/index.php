@@ -350,6 +350,58 @@ function restoreNote($noteId) {
     return $note;
 }
 
+function permanentlyDeleteTestNote($noteId) {
+    $sourceFile = NOTES_DIR . $noteId . '.json';
+    if (!file_exists($sourceFile)) {
+        return false;
+    }
+
+    $note = json_decode(file_get_contents($sourceFile), true);
+    
+    // Safety check: Only delete notes that are actually test notes
+    if (!isset($note['is_test']) || $note['is_test'] !== true) {
+        return false;
+    }
+
+    // 1. Delete the note file
+    unlink($sourceFile);
+
+    // 2. Delete the assets directory if it exists
+    $assetsDir = NOTES_DIR . $noteId . '/assets';
+    if (is_dir($assetsDir)) {
+        deleteDirectory($assetsDir);
+        // Remove the parent note directory if it's empty
+        @rmdir(NOTES_DIR . $noteId);
+    }
+
+    return true;
+}
+
+function permanentlyDeleteTestNoteFromDeleted($noteId) {
+    $deletedFile = DELETED_NOTES_DIR . $noteId . '.json';
+    if (!file_exists($deletedFile)) {
+        return false;
+    }
+
+    $note = json_decode(file_get_contents($deletedFile), true);
+    
+    // Safety check: Only delete notes that are actually test notes
+    if (!isset($note['is_test']) || $note['is_test'] !== true) {
+        return false;
+    }
+
+    // 1. Delete the note file from deleted folder
+    unlink($deletedFile);
+
+    // 2. Delete the assets directory from deleted folder if it exists
+    $deletedAssetsDir = DELETED_ASSETS_DIR . $noteId;
+    if (is_dir($deletedAssetsDir)) {
+        deleteDirectory($deletedAssetsDir);
+    }
+
+    return true;
+}
+
 switch ($route) {
     case 'public-notes':
         if ($method === 'GET') {
@@ -673,8 +725,9 @@ switch ($route) {
             if ($method === 'POST' && isAuthenticated() && isTestSession()) {
                 $deletedCount = 0;
                 $versionDirsCleanedCount = 0;
-                $files = glob(NOTES_DIR . '*.json');
                 
+                // 1. Clean up test notes from main notes directory
+                $files = glob(NOTES_DIR . '*.json');
                 foreach ($files as $file) {
                     $note = json_decode(file_get_contents($file), true);
                     if (isset($note['is_test']) && $note['is_test'] === true) {
@@ -692,9 +745,24 @@ switch ($route) {
                             $versionDirsCleanedCount++;
                         }
                         
-                        // Delete test note
-                        moveToDeleted($noteId);
-                        $deletedCount++;
+                        // Permanently delete test note (don't move to deleted folder)
+                        if (permanentlyDeleteTestNote($noteId)) {
+                            $deletedCount++;
+                        }
+                    }
+                }
+                
+                // 2. Clean up test notes from deleted folder
+                $deletedFiles = glob(DELETED_NOTES_DIR . '*.json');
+                foreach ($deletedFiles as $file) {
+                    $note = json_decode(file_get_contents($file), true);
+                    if (isset($note['is_test']) && $note['is_test'] === true) {
+                        $noteId = $note['id'];
+                        
+                        // Permanently delete test note from deleted folder
+                        if (permanentlyDeleteTestNoteFromDeleted($noteId)) {
+                            $deletedCount++;
+                        }
                     }
                 }
                 
@@ -702,7 +770,7 @@ switch ($route) {
                     'success' => true,
                     'deleted_count' => $deletedCount,
                     'version_dirs_cleaned' => $versionDirsCleanedCount,
-                    'message' => "Cleaned up $deletedCount test notes and $versionDirsCleanedCount version directories"
+                    'message' => "Permanently deleted $deletedCount test notes and cleaned $versionDirsCleanedCount version directories"
                 ]);
             } else {
                 http_response_code(403);
