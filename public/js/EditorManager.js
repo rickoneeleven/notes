@@ -129,15 +129,66 @@ export default class EditorManager {
         try {
             this.isUpdatingContent = true;
             
-            const transaction = this.view.state.update({
-                changes: {
-                    from: 0,
-                    to: this.view.state.doc.length,
-                    insert: text || ''
-                }
+            // Store current read-only state
+            const isReadOnly = this.view.state.readOnly;
+            
+            // Create fresh extensions (same as init but with current read-only state)
+            const extensions = [
+                lineNumbers(),
+                history(),
+                search({ top: true }),
+                EditorView.lineWrapping,
+                indentUnit.of("    "),
+                keymap.of([
+                    {
+                        key: 'Tab',
+                        preventDefault: true,
+                        run: (view) => {
+                            view.dispatch(view.state.replaceSelection("\t"));
+                            return true;
+                        },
+                    },
+                    {
+                        key: 'Shift-Tab',
+                        preventDefault: true,
+                        run: indentLess,
+                    },
+                    ...defaultKeymap, 
+                    ...historyKeymap,
+                    ...searchKeymap
+                ]),
+                highlightSelectionMatches(),
+                oneDark,
+                this.readOnlyCompartment.of(EditorState.readOnly.of(isReadOnly)),
+                EditorView.updateListener.of(update => {
+                    if (!this.isUpdatingContent && update.docChanged) {
+                        console.log('[EditorManager] Document changed', {
+                            changes: update.changes.toJSON(),
+                            transactionTime: update.transactions[0]?.time
+                        });
+                        
+                        if (this.changeHandler) {
+                            this.changeHandler(this.getContent());
+                        }
+                    }
+                }),
+                EditorView.domEventHandlers({
+                    click: () => {
+                        console.log('[EditorManager] Editor clicked');
+                        if (this.app && this.app.pollingManager) {
+                            this.app.pollingManager.trackActivity();
+                        }
+                        return false;
+                    }
+                })
+            ];
+            
+            const newState = EditorState.create({
+                doc: text || '',
+                extensions
             });
             
-            this.view.dispatch(transaction);
+            this.view.setState(newState);
             
             console.log('[EditorManager] Content set successfully', {
                 newLineCount: this.view.state.doc.lines,
