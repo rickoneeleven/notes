@@ -164,29 +164,26 @@ function saveNote($note) {
 }
 
 function cleanupOldDeletedNotes() {
-    // This session check prevents the function from running on every single save.
-    // It's a simple throttle to run it once per day per user session.
-    $lastCleanup = $_SESSION['last_cleanup'] ?? 0;
-    $today = date('Y-m-d');
-    if (date('Y-m-d', $lastCleanup) === $today) {
-        return;
-    }
-
     $cutoffTime = time() - (30 * 24 * 60 * 60);
 
     // 1. Purge old deleted notes and their assets (existing logic)
     $files = glob(DELETED_NOTES_DIR . '*.json');
     foreach ($files as $file) {
-        if (filemtime($file) < $cutoffTime) {
-            $note = json_decode(file_get_contents($file), true);
-            if ($note && isset($note['id'])) {
+        $note = json_decode(file_get_contents($file), true);
+        if (!$note || !isset($note['deleted_at'])) {
+            continue;
+        }
+        
+        $deletedTime = strtotime($note['deleted_at']);
+        
+        if ($deletedTime < $cutoffTime) {
+            if (isset($note['id'])) {
                 $assetsDir = DELETED_ASSETS_DIR . $note['id'];
                 if (is_dir($assetsDir)) {
-                    // This `deleteDirectory` helper must be included or defined.
-                    // Assuming it exists in assets.php which is required in index.php
                     deleteDirectory($assetsDir);
                 }
             }
+            
             @unlink($file);
         }
     }
@@ -204,8 +201,6 @@ function cleanupOldDeletedNotes() {
         // Save the file back with only the non-expired folders
         file_put_contents(DELETED_FOLDERS_FILE, json_encode($remainingFolders, JSON_PRETTY_PRINT));
     }
-
-    $_SESSION['last_cleanup'] = time();
 }
 
 function moveToDeleted($noteId) {

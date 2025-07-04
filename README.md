@@ -23,7 +23,7 @@ A lightweight, web-based notepad application inspired by Notepad++. Create, edit
 
 ### Automatic Cleanup System
 - **Lazy cleanup** - Deleted notes are automatically removed after 30 days
-- **Triggered on save** - Cleanup runs when any note is saved (max once per day per session)
+- **Triggered on save** - Cleanup runs whenever any note is saved (including autosave)
 - **Complete removal** - Deletes note files, associated assets, and folder metadata
 - **30-day grace period** - Deleted items remain restorable for 30 days before permanent deletion
 
