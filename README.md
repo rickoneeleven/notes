@@ -21,6 +21,12 @@ A lightweight, web-based notepad application inspired by Notepad++. Create, edit
 - **24-hour retention** - Automatic cleanup of old versions to manage storage
 - **Instant restoration** - One-click restoration from any previous version
 
+### Automatic Cleanup System
+- **Lazy cleanup** - Deleted notes are automatically removed after 30 days
+- **Triggered on save** - Cleanup runs when any note is saved (max once per day per session)
+- **Complete removal** - Deletes note files, associated assets, and folder metadata
+- **30-day grace period** - Deleted items remain restorable for 30 days before permanent deletion
+
 ## Installation
 
 1. Clone this repository to your web server
@@ -149,13 +155,6 @@ public_html/                     # Project root
 - `GET /api/deleted-notes` - List soft-deleted notes
 - `POST /api/deleted-notes/{id}/restore` - Restore deleted note
 
-## Security
-
-- Sensitive files protected by .htaccess
-- Password hashing with PHP's password_hash()
-- Session-based authentication with persistent cookies
-- Document root isolation (public/ directory only)
-
 ## Testing
 
 ### Before Making Changes (Regression Testing)
@@ -164,7 +163,7 @@ Run all existing tests to ensure nothing breaks:
 
 ### Test Setup (One Time Only)
 ```bash
-npm install         # For frontend testing
+npm install         # For frontend testingand
 composer install    # For backend testing
 ```
 
