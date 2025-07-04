@@ -14,6 +14,7 @@ export default class EditorManager {
         this.isUpdatingContent = false;
         this.app = null;
         this.readOnlyCompartment = new Compartment();
+        this.historyCompartment = new Compartment();
     }
     
     setApp(app) {
@@ -38,7 +39,7 @@ export default class EditorManager {
         try {
             const extensions = [
                 lineNumbers(),
-                history(),
+                this.historyCompartment.of(history()),
                 search({ top: true }),
                 EditorView.lineWrapping,
                 indentUnit.of("    "),
@@ -129,66 +130,25 @@ export default class EditorManager {
         try {
             this.isUpdatingContent = true;
             
-            // Store current read-only state
-            const isReadOnly = this.view.state.readOnly;
+            const currentDoc = this.view.state.doc.toString();
+            const newText = text || '';
             
-            // Create fresh extensions (same as init but with current read-only state)
-            const extensions = [
-                lineNumbers(),
-                history(),
-                search({ top: true }),
-                EditorView.lineWrapping,
-                indentUnit.of("    "),
-                keymap.of([
-                    {
-                        key: 'Tab',
-                        preventDefault: true,
-                        run: (view) => {
-                            view.dispatch(view.state.replaceSelection("\t"));
-                            return true;
-                        },
-                    },
-                    {
-                        key: 'Shift-Tab',
-                        preventDefault: true,
-                        run: indentLess,
-                    },
-                    ...defaultKeymap, 
-                    ...historyKeymap,
-                    ...searchKeymap
-                ]),
-                highlightSelectionMatches(),
-                oneDark,
-                this.readOnlyCompartment.of(EditorState.readOnly.of(isReadOnly)),
-                EditorView.updateListener.of(update => {
-                    if (!this.isUpdatingContent && update.docChanged) {
-                        console.log('[EditorManager] Document changed', {
-                            changes: update.changes.toJSON(),
-                            transactionTime: update.transactions[0]?.time
-                        });
-                        
-                        if (this.changeHandler) {
-                            this.changeHandler(this.getContent());
-                        }
+            if (currentDoc !== newText) {
+                this.view.dispatch({
+                    changes: {
+                        from: 0,
+                        to: this.view.state.doc.length,
+                        insert: newText
                     }
-                }),
-                EditorView.domEventHandlers({
-                    click: () => {
-                        console.log('[EditorManager] Editor clicked');
-                        if (this.app && this.app.pollingManager) {
-                            this.app.pollingManager.trackActivity();
-                        }
-                        return false;
-                    }
-                })
-            ];
-            
-            const newState = EditorState.create({
-                doc: text || '',
-                extensions
-            });
-            
-            this.view.setState(newState);
+                });
+                
+                this.view.dispatch({
+                    effects: this.historyCompartment.reconfigure([])
+                });
+                this.view.dispatch({
+                    effects: this.historyCompartment.reconfigure([history()])
+                });
+            }
             
             console.log('[EditorManager] Content set successfully', {
                 newLineCount: this.view.state.doc.lines,
