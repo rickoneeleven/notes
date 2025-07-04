@@ -37,7 +37,7 @@ function updateFolderTimestamp($folderName) {
     saveFolders($folders);
 }
 
-function createFolder($folderName) {
+function createFolder($folderName, $isTest = false) {
     if (empty($folderName)) {
         return ['error' => 'Folder name is required', 'code' => 400];
     }
@@ -49,13 +49,19 @@ function createFolder($folderName) {
         }
     }
     
-    $folders[] = [
+    $newFolder = [
         'name' => $folderName,
         'lastModified' => date('c')
     ];
+    
+    if ($isTest) {
+        $newFolder['is_test'] = true;
+    }
+    
+    $folders[] = $newFolder;
     saveFolders($folders);
     
-    return ['success' => true, 'folder' => ['name' => $folderName, 'lastModified' => date('c')]];
+    return ['success' => true, 'folder' => $newFolder];
 }
 
 function renameFolder($oldName, $newName) {

@@ -725,6 +725,7 @@ switch ($route) {
             if ($method === 'POST' && isAuthenticated() && isTestSession()) {
                 $deletedCount = 0;
                 $versionDirsCleanedCount = 0;
+                $foldersCleanedCount = 0;
                 
                 // 1. Clean up test notes from main notes directory
                 $files = glob(NOTES_DIR . '*.json');
@@ -766,11 +767,39 @@ switch ($route) {
                     }
                 }
                 
+                // 3. Clean up test folders from live folders
+                $folders = getFolders();
+                $cleanedFolders = [];
+                foreach ($folders as $folder) {
+                    if (isset($folder['is_test']) && $folder['is_test'] === true) {
+                        $foldersCleanedCount++;
+                    } else {
+                        $cleanedFolders[] = $folder;
+                    }
+                }
+                saveFolders($cleanedFolders);
+                
+                // 4. Clean up test folders from deleted folders
+                $deletedFoldersFile = NOTES_DIR . 'deleted_folders.json';
+                if (file_exists($deletedFoldersFile)) {
+                    $deletedFolders = json_decode(file_get_contents($deletedFoldersFile), true);
+                    $cleanedDeletedFolders = [];
+                    foreach ($deletedFolders as $folder) {
+                        if (isset($folder['is_test']) && $folder['is_test'] === true) {
+                            $foldersCleanedCount++;
+                        } else {
+                            $cleanedDeletedFolders[] = $folder;
+                        }
+                    }
+                    file_put_contents($deletedFoldersFile, json_encode($cleanedDeletedFolders, JSON_PRETTY_PRINT));
+                }
+                
                 echo json_encode([
                     'success' => true,
                     'deleted_count' => $deletedCount,
+                    'folders_cleaned' => $foldersCleanedCount,
                     'version_dirs_cleaned' => $versionDirsCleanedCount,
-                    'message' => "Permanently deleted $deletedCount test notes and cleaned $versionDirsCleanedCount version directories"
+                    'message' => "Permanently deleted $deletedCount test notes, $foldersCleanedCount test folders, and cleaned $versionDirsCleanedCount version directories"
                 ]);
             } else {
                 http_response_code(403);
@@ -784,7 +813,7 @@ switch ($route) {
                 $input = json_decode(file_get_contents('php://input'), true);
                 $folderName = trim($input['name'] ?? '');
                 
-                $result = createFolder($folderName);
+                $result = createFolder($folderName, isTestSession());
                 if (isset($result['error'])) {
                     http_response_code($result['code']);
                     echo json_encode(['error' => $result['error']]);
