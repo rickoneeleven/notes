@@ -274,6 +274,25 @@ class UIManager {
             if (this.app.editorManager && this.app.editorManager.view) {
                 this.app.editorManager.view.contentDOM.blur();
             }
+            
+            const rand = Math.random() * 100;
+            let emoji;
+            
+            if (rand < 1) {
+                emoji = '💩';  // 1/100 chance
+            } else if (rand < 6) {
+                emoji = '🤪';  // 1/20 chance (5%)
+            } else if (rand < 8) {
+                emoji = '🌈';  // 1/50 chance (2%)
+            } else if (rand < 10) {
+                emoji = '✨';  // 1/50 chance (2%)
+            } else {
+                const happyEmojis = ['😄', '😁'];
+                emoji = happyEmojis[Math.floor(Math.random() * happyEmojis.length)];
+            }
+            
+            sleepyEyes.textContent = emoji;
+            
             sleepyEyes.style.display = 'block';
             setTimeout(() => {
                 sleepyEyes.classList.add('show');
