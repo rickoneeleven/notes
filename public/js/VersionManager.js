@@ -190,7 +190,7 @@ class VersionManager {
                 hour: '2-digit',
                 minute: '2-digit',
                 second: '2-digit',
-                hour12: true
+                hour12: false
             });
         } catch (error) {
             console.error('[VersionManager.formatVersionDate] Error formatting date:', error);
