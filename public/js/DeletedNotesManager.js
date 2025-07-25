@@ -39,9 +39,9 @@ class DeletedNotesManager {
         const list = document.getElementById('deletedNotesList');
         list.innerHTML = '';
         
-        const { deletedFolders, standaloneDeletedNotes } = deletedItems;
+        const { items } = deletedItems;
 
-        if (deletedFolders.length === 0 && standaloneDeletedNotes.length === 0) {
+        if (!items || items.length === 0) {
             list.innerHTML = '<div class="no-deleted-notes">No deleted items</div>';
             return;
         }
@@ -66,39 +66,40 @@ class DeletedNotesManager {
             return item;
         };
 
-        // Render folders and their nested notes
-        deletedFolders.forEach(folder => {
-            const folderItem = document.createElement('div');
-            folderItem.className = 'deleted-folder-item';
+        // Render all items in chronological order
+        items.forEach(item => {
+            if (item.type === 'folder') {
+                // Render folder
+                const folderItem = document.createElement('div');
+                folderItem.className = 'deleted-folder-item';
 
-            const daysText = folder.days_deleted === 0 ? 'Today' :
-                             folder.days_deleted === 1 ? '1 day ago' :
-                             `${folder.days_deleted} days ago`;
+                const daysText = item.days_deleted === 0 ? 'Today' :
+                                 item.days_deleted === 1 ? '1 day ago' :
+                                 `${item.days_deleted} days ago`;
 
-            folderItem.innerHTML = `
-                <div class="deleted-folder-header">
-                    <div class="deleted-folder-content">
-                        <div class="deleted-folder-name">${folder.name}</div>
-                        <div class="deleted-folder-meta">Deleted ${daysText}</div>
+                folderItem.innerHTML = `
+                    <div class="deleted-folder-header">
+                        <div class="deleted-folder-content">
+                            <div class="deleted-folder-name">${item.name}</div>
+                            <div class="deleted-folder-meta">Deleted ${daysText}</div>
+                        </div>
+                        <button class="restore-btn" data-folder-name="${item.name}" title="Restore folder">↰</button>
                     </div>
-                    <button class="restore-btn" data-folder-name="${folder.name}" title="Restore folder">↰</button>
-                </div>
-                <div class="deleted-notes-in-folder"></div>
-            `;
-            
-            const nestedList = folderItem.querySelector('.deleted-notes-in-folder');
-            folder.notes.forEach(note => {
-                const noteElement = createNoteElement(note);
-                nestedList.appendChild(noteElement);
-            });
-            
-            list.appendChild(folderItem);
-        });
-
-        // Render standalone notes
-        standaloneDeletedNotes.forEach(note => {
-            const noteElement = createNoteElement(note);
-            list.appendChild(noteElement);
+                    <div class="deleted-notes-in-folder"></div>
+                `;
+                
+                const nestedList = folderItem.querySelector('.deleted-notes-in-folder');
+                item.notes.forEach(note => {
+                    const noteElement = createNoteElement(note);
+                    nestedList.appendChild(noteElement);
+                });
+                
+                list.appendChild(folderItem);
+            } else if (item.type === 'note') {
+                // Render standalone note
+                const noteElement = createNoteElement(item);
+                list.appendChild(noteElement);
+            }
         });
     }
 

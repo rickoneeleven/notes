@@ -237,8 +237,8 @@ function trashNote($noteId) {
 }
 
 function getDeletedNotes() {
+    $allItems = [];
     $deletedFoldersMap = [];
-    $standaloneNotes = [];
     $now = new DateTime();
 
     // 1. Process deleted folders first
@@ -249,6 +249,7 @@ function getDeletedNotes() {
             $interval = $now->diff($deletedAt);
             $folder['days_deleted'] = $interval->days;
             $folder['notes'] = []; // Prepare to hold child notes
+            $folder['type'] = 'folder'; // Add type marker
             $deletedFoldersMap[$folder['name']] = $folder;
         }
     }
@@ -267,34 +268,32 @@ function getDeletedNotes() {
                 $deletedFoldersMap[$note['folderName']]['notes'][] = $note;
             } else {
                 // Otherwise, it's a standalone deleted note
-                $standaloneNotes[] = $note;
+                $note['type'] = 'note'; // Add type marker
+                $allItems[] = $note;
             }
         }
     }
 
-    // 3. Sort everything for consistent ordering
-    // Sort notes within each folder by deletion date (most recent first)
+    // 3. Sort notes within each folder by deletion date (most recent first)
     foreach ($deletedFoldersMap as &$folder) {
         usort($folder['notes'], function($a, $b) {
             return strtotime($b['deleted_at']) - strtotime($a['deleted_at']);
         });
     }
     
-    // Convert map to a simple array and sort folders by deletion date
-    $deletedFoldersList = array_values($deletedFoldersMap);
-    usort($deletedFoldersList, function($a, $b) {
+    // 4. Add all folders to the combined array
+    foreach ($deletedFoldersMap as $folder) {
+        $allItems[] = $folder;
+    }
+
+    // 5. Sort the combined array by deletion date (most recent first)
+    usort($allItems, function($a, $b) {
         return strtotime($b['deleted_at']) - strtotime($a['deleted_at']);
     });
 
-    // Sort standalone notes by deletion date
-    usort($standaloneNotes, function($a, $b) {
-        return strtotime($b['deleted_at']) - strtotime($a['deleted_at']);
-    });
-
-    // 4. Return the final structured object
+    // 6. Return single chronologically sorted array
     return [
-        'deletedFolders' => $deletedFoldersList,
-        'standaloneDeletedNotes' => $standaloneNotes
+        'items' => $allItems
     ];
 }
 
