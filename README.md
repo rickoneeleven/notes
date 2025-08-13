@@ -49,6 +49,24 @@ Edit `config.json` to customize:
 - `session_lifetime_days` - How long to stay logged in (default: 365 days)
 - `autosave_delay_ms` - Autosave delay in milliseconds (default: 1000ms)
 
+### Large File Upload Configuration
+
+For uploading files larger than 2MB, update your PHP-FPM pool configuration:
+
+```ini
+# Add to your PHP-FPM pool config (e.g., /etc/php/8.3/fpm/pool.d/yoursite.conf)
+php_admin_value[upload_max_filesize] = 100G
+php_admin_value[post_max_size] = 100G
+php_admin_value[max_execution_time] = 0
+php_admin_value[max_input_time] = -1
+php_admin_value[memory_limit] = -1
+```
+
+After making changes, restart PHP-FPM:
+```bash
+sudo systemctl restart php8.3-fpm
+```
+
 ## Versioning Setup
 
 The version history system requires a cron job to automatically create snapshots when notes change.
